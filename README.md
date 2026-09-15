@@ -74,16 +74,84 @@ Le guide de chaque version fera foi pour l’installation et le premier test. Au
 
 Le dépôt [mauricecli](https://github.com/agentmaurice/mauricecli) distribue actuellement la CLI historique. One utilise également le nom `maurice` : suivez les instructions de la release pour éviter de lancer le mauvais exécutable. N’utilisez pas `maurice update install` pour installer ou mettre à jour cette alpha One : son canal de mise à jour n’est pas encore raccordé à ce dépôt.
 
-## Signaler un problème
+## Diagnostiquer et signaler un problème pendant l’alpha
 
-Ouvrez une [Issue](https://github.com/agentmaurice/one/issues) avec :
+À utiliser après un problème d’installation, de démarrage ou d’exécution, idéalement **dans la même conversation que le test**. Le diagnostic fonctionne aussi si One ne démarre pas. Remplacez la première ligne entre crochets si vous ouvrez une nouvelle conversation.
 
-- la version de One et la version de macOS ;
-- le résultat attendu et le résultat observé ;
-- les étapes minimales pour reproduire le problème ;
-- si un agent de code intervient, son nom, son modèle et le prompt utilisé.
+Copiez ce prompt dans votre agent de code :
 
-Les Issues sont publiques. Avant de joindre un extrait, retirez les clés API, jetons, données personnelles et informations confidentielles. Ne joignez pas votre répertoire de données One ni une configuration complète.
+```text
+Diagnostique mon essai d’AgentMaurice One et prépare un rapport de bug à transmettre
+à l’équipe. Problème : [reprends le problème rencontré dans cette conversation,
+ou demande-moi en une seule question ce que je voulais faire et ce qui a échoué].
+
+Tu es en mode DEBUG : cherche la cause avec les aides et commandes publiques,
+sans modifier le produit ni masquer l’échec par une réinstallation. Travaille
+uniquement sur mon installation locale One et avec des données de test fictives.
+Lis https://github.com/agentmaurice/one et les notes de ma version si accessibles.
+L’absence de réseau ou de binaire ne doit pas empêcher de produire le rapport.
+
+1. Résume le scénario et tous les problèmes observés dans cette conversation,
+   y compris les erreurs transitoires, les contournements et les difficultés
+   de découverte. Sépare les faits prouvés des hypothèses. N’invente ni version,
+   ni modèle, ni résultat ; indique « inconnu » lorsque nécessaire.
+
+2. Identifie le binaire réellement utilisé et une éventuelle collision avec
+   une ancienne CLI maurice. Relève version/build, architecture, version macOS,
+   nom/version de l’agent de code et modèle si connus. Utilise le chemin explicite
+   du binaire One pour les contrôles. Si le téléchargement ou l’ouverture échoue,
+   relève l’URL officielle, le message exact, le checksum et la signature si
+   disponibles. N’exécute pas un binaire dont l’intégrité est en défaut.
+
+3. Consulte maurice help et les aides des commandes avant de les utiliser.
+   Inspecte le contexte sélectionné sans afficher de secrets ; ne bascule pas
+   sur un service distant. Avec les chemins de données/configuration de cet
+   essai, lance les diagnostics locaux disponibles (doctor, ping, whoami).
+   Note pour chaque contrôle la commande expurgée, le code de sortie, la durée
+   approximative et un court extrait utile. Si une commande manque, relève-le.
+   Vérifie les ports et dépendances seulement s’ils sont liés au symptôme.
+   Ne considère pas Docker absent comme un échec du socle One.
+
+4. Tente une reproduction minimale au plus deux fois si elle est sans effet
+   externe. Ne rejoue pas un envoi, un paiement, une suppression ou une opération
+   dont le résultat est incertain. Pour un Workflow, utilise un Agent de test
+   isolé via les commandes publiques découvertes dans maurice test guide ;
+   garde les identifiants retournés et vérifie le contenu de sortie, pas seulement
+   le statut. N’utilise aucun MCP privé ni service payant pour le diagnostic.
+   Ne lis pas les sources privées ni les suites de tests de l’équipe.
+
+5. Garde le diagnostic court : après deux essais infructueux ou environ dix
+   minutes, produis les conclusions disponibles. Ne réinstalle pas One, ne mets
+   rien à jour, ne change pas les permissions ou la sécurité macOS et n’arrête
+   aucune instance préexistante. Signale les refus de ton propre environnement
+   séparément des bugs One. Nettoie uniquement les ressources temporaires que
+   tu as créées, avec leur propriété vérifiée. Liste tout résidu ou nettoyage
+   non vérifié ; conserve l’installation et les données du testeur.
+
+6. Crée un nouveau dossier one-alpha-debug-<date-heure> avec :
+   - report.md : résumé, impact, environnement, problèmes numérotés, étapes de
+     reproduction, attendu/observé, preuves courtes, hypothèses, contournements
+     tentés, état du nettoyage et contrôles impossibles ;
+   - issue.md : titre et description prêts à copier dans une Issue GitHub,
+     contenant uniquement les éléments nécessaires pour reproduire et trier.
+   Inclue les problèmes rencontrés même s’ils ont ensuite disparu. Distingue
+   PASS, FAIL et NON TESTÉ ; un blocage n’est pas une réussite.
+
+Avant d’écrire les rapports, expurge les secrets et informations personnelles :
+clés API, tokens, cookies, en-têtes Authorization, liens privés ou signés,
+identifiants de compte et contenus métier. Remplace les chemins personnels
+par <HOME> et les valeurs sensibles par des marqueurs cohérents. N’exporte
+ni variables d’environnement complètes, ni configuration brute, ni base,
+ni dossier de données, ni conversation complète. Ne collecte que les extraits
+nécessaires ; en cas de doute, omets l’extrait et indique-le dans le rapport.
+
+Relis les deux fichiers pour contrôler leur confidentialité. Termine par un
+résumé très court et les liens vers les fichiers. Invite-moi à relire issue.md,
+puis à le copier dans https://github.com/agentmaurice/one/issues/new.
+Ne publie et n’envoie rien automatiquement.
+```
+
+**Pour nous transmettre le résultat :** relisez `issue.md`, puis copiez son contenu dans une [nouvelle Issue](https://github.com/agentmaurice/one/issues/new). Le fichier `report.md` fournit les détails complémentaires si nécessaire. Les Issues sont publiques ; ne joignez pas de logs bruts ou de données personnelles.
 
 ## À propos de ce dépôt
 
