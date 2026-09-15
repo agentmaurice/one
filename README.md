@@ -1,162 +1,155 @@
 # AgentMaurice One
 
-AgentMaurice One réunit le runtime local AgentMaurice et sa ligne de commande dans un exécutable : `maurice`.
+AgentMaurice One combines the local AgentMaurice runtime and its command-line tools in one executable: `maurice`.
 
-Votre agent de code construit et teste des Workflows ; One les exécute sur votre poste. `maurice help` est le point d’entrée de découverte, et `maurice serve` démarre le runtime local.
+Your coding agent builds and tests Workflows; One runs them on your computer. Start with `maurice help` to discover the commands, and use `maurice serve` to start the local runtime.
 
-## Installer avec votre agent de code
+## Install with your coding agent
 
-Copiez ce prompt dans Claude Code, Cursor, Codex ou votre assistant de code disposant d’un terminal :
-
-```text
-Installe AgentMaurice One sur ce Mac et accompagne-moi jusqu’à un premier Workflow testé.
-
-Commence par lire https://github.com/agentmaurice/one et les Releases de ce dépôt.
-Utilise uniquement une release alpha publiée pour macOS Apple Silicon, avec ses
-instructions et ses fichiers officiels. Vérifie la compatibilité du Mac. S’il
-n’y a aucune release compatible publiée, explique-le sans installer la CLI
-historique, compiler depuis des sources privées ou inventer un téléchargement.
-
-Télécharge l’archive et son fichier SHA-256, vérifie le checksum avant extraction,
-puis les checksums internes et la signature Developer ID Morvan Consulting.
-Installe dans un dossier utilisateur versionné, sans sudo ni remplacement d’une
-installation existante. Utilise le chemin absolu du nouvel exécutable maurice.
-Si Gatekeeper bloque ce binaire signé mais non notarisé, accompagne-moi dans
-l’autorisation macOS de ce binaire précis, sans désactiver Gatekeeper globalement.
-
-Lis maurice help et suis les aides embarquées. Utilise un répertoire de données
-One et une configuration CLI dédiés ; ne réutilise pas un contexte distant.
-Démarre maurice serve et conserve un terminal serveur ouvert. Effectue setup
-avec le même data-dir et le client correspondant à ton outil, puis lis le
-SKILL.md indiqué par setup. Vérifie doctor, ping et whoami. Si les ports sont
-occupés, diagnostique sans arrêter ni modifier une instance qui existait déjà.
-
-Lis maurice test guide et les exemples/schémas publics. Crée un Agent de test
-isolé avec test setup --fresh --save=false. Construis un petit Workflow qui
-accepte un texte et retourne un résultat vérifiable, sans LLM payant ni serveur
-MCP privé. Utilise le rail Agent Spec : check, commit local, spec deploy,
-puis test workflow call. Appelle-le avec deux textes différents et vérifie
-le contenu des résultats, pas seulement le statut. Ne demande aucune clé
-cloud si ce scénario local peut s’en passer.
-
-Nettoie uniquement les ressources temporaires de ce test avec les commandes
-publiques et les identifiants retournés. Conserve One installé et ses données.
-Donne-moi les commandes exactes pour le démarrer, l’arrêter et reprendre.
-Termine par un bilan court : version, contrôles réussis, résultats des deux
-appels et éventuelles erreurs. Ne publie aucune Issue ni aucun secret sans
-mon accord. Si tu es bloqué, rapporte la commande et l’erreur expurgée plutôt
-que de prétendre avoir réussi.
-```
-
-Le premier alpha testeur validera l’installation sur un Mac sans installation précédente de One.
-
-## État de l’alpha
-
-**Première distribution Mac Apple Silicon en préparation. Aucun binaire n’est encore publié ici.**
-
-Le candidat alpha est signé avec l’identité Developer ID Application de Morvan Consulting. La notarisation Apple est différée pour cette alpha ; macOS peut donc demander une autorisation d’ouverture. Le parcours sur un Mac sans installation précédente sera validé par les premiers alpha testeurs.
-
-La première cible est macOS sur Apple Silicon (M1 et générations suivantes). Aucune disponibilité Windows, Linux ou Mac Intel n’est annoncée à ce stade.
-
-## Télécharger et tester
-
-Les versions seront disponibles dans les [Releases](https://github.com/agentmaurice/one/releases), avec l’archive, sa somme de contrôle SHA-256, les instructions d’installation et les limites connues. Les versions alpha seront identifiées comme préversions.
-
-Le guide de chaque version fera foi pour l’installation et le premier test. Aucun script d’installation One n’est encore publié.
-
-- Le socle local fonctionne sans Docker et sans compte cloud obligatoire.
-- Certaines extensions nécessitent des dépendances ou des services supplémentaires.
-- Deno est téléchargé automatiquement lorsqu’il est nécessaire ; prévoir un accès Internet pour ce téléchargement.
-- Les appels à des modèles ou services externes peuvent demander une configuration et occasionner des coûts.
-- Le Viewer de MiniApps, la voix et les messageries ne sont pas inclus dans cette première archive alpha.
-
-### Si vous utilisez déjà Maurice CLI
-
-Le dépôt [mauricecli](https://github.com/agentmaurice/mauricecli) distribue actuellement la CLI historique. One utilise également le nom `maurice` : suivez les instructions de la release pour éviter de lancer le mauvais exécutable. N’utilisez pas `maurice update install` pour installer ou mettre à jour cette alpha One : son canal de mise à jour n’est pas encore raccordé à ce dépôt.
-
-## Diagnostiquer et signaler un problème pendant l’alpha
-
-À utiliser après un problème d’installation, de démarrage ou d’exécution, idéalement **dans la même conversation que le test**. Le diagnostic fonctionne aussi si One ne démarre pas. Remplacez la première ligne entre crochets si vous ouvrez une nouvelle conversation.
-
-Copiez ce prompt dans votre agent de code :
+Copy this prompt into Claude Code, Cursor, Codex, or another coding assistant with terminal access:
 
 ```text
-Diagnostique mon essai d’AgentMaurice One et prépare un rapport de bug à transmettre
-à l’équipe. Problème : [reprends le problème rencontré dans cette conversation,
-ou demande-moi en une seule question ce que je voulais faire et ce qui a échoué].
+Install AgentMaurice One on this Mac and guide me through my first tested Workflow.
 
-Tu es en mode DEBUG : cherche la cause avec les aides et commandes publiques,
-sans modifier le produit ni masquer l’échec par une réinstallation. Travaille
-uniquement sur mon installation locale One et avec des données de test fictives.
-Lis https://github.com/agentmaurice/one et les notes de ma version si accessibles.
-L’absence de réseau ou de binaire ne doit pas empêcher de produire le rapport.
+Start by reading https://github.com/agentmaurice/one and this repository's Releases.
+Use only a published alpha release for macOS Apple Silicon, along with its
+instructions and official assets. Check this Mac's compatibility. If no compatible
+release has been published, explain that without installing the legacy CLI,
+building from private sources, or inventing a download URL.
 
-1. Résume le scénario et tous les problèmes observés dans cette conversation,
-   y compris les erreurs transitoires, les contournements et les difficultés
-   de découverte. Sépare les faits prouvés des hypothèses. N’invente ni version,
-   ni modèle, ni résultat ; indique « inconnu » lorsque nécessaire.
+Download the archive and its SHA-256 file. Verify the checksum before extraction,
+then verify the internal checksums and the Morvan Consulting Developer ID signature.
+Install in a versioned user directory, without sudo or replacing an existing
+installation. Use the absolute path to the new maurice executable.
+If Gatekeeper blocks this signed but unnotarized binary, guide me through approving
+this specific binary in macOS without disabling Gatekeeper globally.
 
-2. Identifie le binaire réellement utilisé et une éventuelle collision avec
-   une ancienne CLI maurice. Relève version/build, architecture, version macOS,
-   nom/version de l’agent de code et modèle si connus. Utilise le chemin explicite
-   du binaire One pour les contrôles. Si le téléchargement ou l’ouverture échoue,
-   relève l’URL officielle, le message exact, le checksum et la signature si
-   disponibles. N’exécute pas un binaire dont l’intégrité est en défaut.
+Read maurice help and follow the built-in guidance. Use dedicated One data and CLI
+configuration paths; do not reuse a remote context. Start maurice serve and keep
+a server terminal open. Run setup with the same data-dir and the client matching
+your tool, then read the SKILL.md returned by setup. Check doctor, ping, and whoami.
+If ports are occupied, investigate without stopping or modifying an existing instance.
 
-3. Consulte maurice help et les aides des commandes avant de les utiliser.
-   Inspecte le contexte sélectionné sans afficher de secrets ; ne bascule pas
-   sur un service distant. Avec les chemins de données/configuration de cet
-   essai, lance les diagnostics locaux disponibles (doctor, ping, whoami).
-   Note pour chaque contrôle la commande expurgée, le code de sortie, la durée
-   approximative et un court extrait utile. Si une commande manque, relève-le.
-   Vérifie les ports et dépendances seulement s’ils sont liés au symptôme.
-   Ne considère pas Docker absent comme un échec du socle One.
+Read maurice test guide and the public examples and schemas. Create an isolated
+test Agent with test setup --fresh --save=false. Build a small Workflow that takes
+text and returns a verifiable result, without a paid LLM or private MCP server.
+Follow the Agent Spec workflow: check, local commit, spec deploy, then test workflow
+call. Call it with two different texts and verify the output content, not just
+the status. Do not request cloud credentials if this local scenario can run without them.
 
-4. Tente une reproduction minimale au plus deux fois si elle est sans effet
-   externe. Ne rejoue pas un envoi, un paiement, une suppression ou une opération
-   dont le résultat est incertain. Pour un Workflow, utilise un Agent de test
-   isolé via les commandes publiques découvertes dans maurice test guide ;
-   garde les identifiants retournés et vérifie le contenu de sortie, pas seulement
-   le statut. N’utilise aucun MCP privé ni service payant pour le diagnostic.
-   Ne lis pas les sources privées ni les suites de tests de l’équipe.
-
-5. Garde le diagnostic court : après deux essais infructueux ou environ dix
-   minutes, produis les conclusions disponibles. Ne réinstalle pas One, ne mets
-   rien à jour, ne change pas les permissions ou la sécurité macOS et n’arrête
-   aucune instance préexistante. Signale les refus de ton propre environnement
-   séparément des bugs One. Nettoie uniquement les ressources temporaires que
-   tu as créées, avec leur propriété vérifiée. Liste tout résidu ou nettoyage
-   non vérifié ; conserve l’installation et les données du testeur.
-
-6. Crée un nouveau dossier one-alpha-debug-<date-heure> avec :
-   - report.md : résumé, impact, environnement, problèmes numérotés, étapes de
-     reproduction, attendu/observé, preuves courtes, hypothèses, contournements
-     tentés, état du nettoyage et contrôles impossibles ;
-   - issue.md : titre et description prêts à copier dans une Issue GitHub,
-     contenant uniquement les éléments nécessaires pour reproduire et trier.
-   Inclue les problèmes rencontrés même s’ils ont ensuite disparu. Distingue
-   PASS, FAIL et NON TESTÉ ; un blocage n’est pas une réussite.
-
-Avant d’écrire les rapports, expurge les secrets et informations personnelles :
-clés API, tokens, cookies, en-têtes Authorization, liens privés ou signés,
-identifiants de compte et contenus métier. Remplace les chemins personnels
-par <HOME> et les valeurs sensibles par des marqueurs cohérents. N’exporte
-ni variables d’environnement complètes, ni configuration brute, ni base,
-ni dossier de données, ni conversation complète. Ne collecte que les extraits
-nécessaires ; en cas de doute, omets l’extrait et indique-le dans le rapport.
-
-Relis les deux fichiers pour contrôler leur confidentialité. Termine par un
-résumé très court et les liens vers les fichiers. Invite-moi à relire issue.md,
-puis à le copier dans https://github.com/agentmaurice/one/issues/new.
-Ne publie et n’envoie rien automatiquement.
+Clean up only this test's temporary resources, using public commands and the returned
+identifiers. Keep One installed and preserve its data. Give me the exact commands
+to start, stop, and resume it. Finish with a short summary: version, successful
+checks, results of both calls, and any errors. Do not publish an Issue or any secrets
+without my approval. If blocked, report the command and sanitized error rather than
+claiming success.
 ```
 
-**Pour nous transmettre le résultat :** relisez `issue.md`, puis copiez son contenu dans une [nouvelle Issue](https://github.com/agentmaurice/one/issues/new). Le fichier `report.md` fournit les détails complémentaires si nécessaire. Les Issues sont publiques ; ne joignez pas de logs bruts ou de données personnelles.
+The first alpha tester will validate installation on a Mac with no previous One installation.
 
-## À propos de ce dépôt
+## Alpha status
 
-Ce dépôt public accueille la distribution de One, sa documentation et les retours des testeurs. Il ne contient pas les sources du moteur AgentMaurice.
+**The first Mac Apple Silicon distribution is being prepared. No binary has been published here yet.**
 
-**AgentMaurice est un logiciel propriétaire.** La visibilité publique de ce dépôt ne confère pas de licence open source au logiciel. Les conditions d’utilisation applicables accompagneront les versions distribuées.
+The alpha candidate is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Early alpha testers will validate installation on Macs with no previous One installation.
 
-[Site AgentMaurice](https://agentmaurice.ai) · [Organisation GitHub](https://github.com/agentmaurice)
+The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and Intel Mac availability has not been announced.
+
+## Download and test
+
+Versions will be available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
+
+Follow the guide included with each version for installation and your first test. No One installation script has been published yet.
+
+- The local core runs without Docker or a mandatory cloud account.
+- Some extensions require additional dependencies or services.
+- Deno is downloaded automatically when needed; this download requires Internet access.
+- Calls to external models or services may require configuration and incur costs.
+- The MiniApp Viewer, voice, and messaging are not included in this first alpha archive.
+
+### If you already use Maurice CLI
+
+The [mauricecli](https://github.com/agentmaurice/mauricecli) repository currently distributes the legacy CLI. One also uses the name `maurice`: follow the release instructions to avoid running the wrong executable. Do not use `maurice update install` to install or update this One alpha; its update channel is not yet connected to this repository.
+
+## Debug and report an alpha issue
+
+Use this after an installation, startup, or runtime problem, preferably **in the same conversation as the test**. It also works when One cannot start. Replace the bracketed description if you begin a new conversation.
+
+Copy this prompt into your coding agent:
+
+```text
+Diagnose my AgentMaurice One test and prepare a bug report for the team.
+Problem: [use the problem encountered in this conversation, or ask me one question
+about what I was trying to do and what failed].
+
+Work in DEBUG mode: investigate using public help and commands, without modifying
+the product or hiding the failure through a reinstall. Work only on my local One
+installation and use synthetic test data. Read https://github.com/agentmaurice/one
+and my version's release notes if accessible. Missing network access or a missing
+binary must not prevent you from producing the report.
+
+1. Summarize the scenario and every issue observed in this conversation, including
+   transient errors, workarounds, and discovery difficulties. Separate verified
+   facts from hypotheses. Do not invent versions, model names, or results; use
+   "unknown" where necessary.
+
+2. Identify the binary actually used and any collision with a legacy maurice CLI.
+   Record version/build, architecture, macOS version, coding agent name/version,
+   and model if known. Use the explicit One binary path for checks. If downloading
+   or opening fails, record the official URL, exact error, checksum, and signature
+   when available. Do not execute a binary that fails integrity verification.
+
+3. Read maurice help and command-specific help before using commands. Inspect the
+   selected context without displaying secrets; do not switch to a remote service.
+   Using this test's data/configuration paths, run the available local diagnostics
+   (doctor, ping, whoami). For each check, record the sanitized command, exit code,
+   approximate duration, and a short relevant output excerpt. Report missing commands.
+   Check ports and dependencies only when relevant to the symptom. Do not treat
+   Docker's absence as a failure of One's local core.
+
+4. Attempt a minimal reproduction at most twice, only if it has no external effects.
+   Do not replay a send, payment, deletion, or operation whose outcome is uncertain.
+   For a Workflow, use an isolated test Agent through the public commands discovered
+   in maurice test guide; keep the returned identifiers and verify output content,
+   not just status. Do not use private MCP servers or paid services for diagnosis.
+   Do not read private sources or the team's internal test suites.
+
+5. Keep diagnosis short: after two unsuccessful attempts or about ten minutes,
+   report what you have learned. Do not reinstall One, update anything, change
+   permissions or macOS security settings, or stop any pre-existing instance.
+   Report restrictions imposed by your own execution environment separately from
+   One bugs. Clean up only temporary resources you created and can verify you own.
+   List any remaining resources or unverified cleanup; preserve the tester's
+   installation and data.
+
+6. Create a new one-alpha-debug-<date-time> directory containing:
+   - report.md: summary, impact, environment, numbered issues, reproduction steps,
+     expected/actual results, concise evidence, hypotheses, attempted workarounds,
+     cleanup status, and checks that could not be performed;
+   - issue.md: a title and description ready to copy into a GitHub Issue, containing
+     only what is needed to reproduce and triage the problem.
+   Write both files in English. Include issues even if they later disappeared.
+   Distinguish PASS, FAIL, and NOT TESTED; being blocked is not a successful check.
+
+Before writing reports, redact secrets and personal information: API keys, tokens,
+cookies, Authorization headers, private or signed URLs, account identifiers, and
+business content. Replace personal paths with <HOME> and sensitive values with
+consistent placeholders. Do not export complete environment variables, raw
+configuration, databases, data directories, or entire conversations. Collect only
+necessary excerpts; when in doubt, omit the excerpt and note this in the report.
+
+Review both files for sensitive content. Finish with a very short summary and links
+to the files. Ask me to review issue.md, then copy it into
+https://github.com/agentmaurice/one/issues/new. Do not publish or send anything
+automatically.
+```
+
+**To send us the results:** review `issue.md`, then copy its contents into a [new Issue](https://github.com/agentmaurice/one/issues/new). Use `report.md` for additional details if needed. Issues are public; do not attach raw logs or personal data.
+
+## About this repository
+
+This public repository hosts One's distribution, documentation, and tester feedback. It does not contain the AgentMaurice engine's source code.
+
+**AgentMaurice is proprietary software.** This repository's public visibility does not grant an open-source license to the software. Applicable terms of use will accompany distributed releases.
+
+[AgentMaurice website](https://agentmaurice.ai) · [GitHub organization](https://github.com/agentmaurice)
