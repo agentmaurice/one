@@ -40,24 +40,24 @@ Read maurice test guide and the public examples and schemas. Create an isolated
 test Agent with test setup --fresh --save=false. Build a small Workflow that takes
 text and returns a verifiable result, without a paid LLM or private MCP server.
 Follow the Agent Spec workflow: check, local commit, spec deploy, then test workflow
-call. Call it with two different texts and verify the output content, not just
-the status. Do not request cloud credentials if this local scenario can run without them.
+call. Call it with two different texts and an empty string, and verify the output
+content, not just the status. Do not request cloud credentials if this local scenario can run without them.
 
 Clean up only this test's temporary resources, using public commands and the returned
 identifiers. Keep One installed and preserve its data. Give me the exact commands
 to start, stop, and resume it. Finish with a short summary: version, successful
-checks, results of both calls, and any errors. Do not publish an Issue or any secrets
+checks, results of all three calls, and any errors. Do not publish an Issue or any secrets
 without my approval. If blocked, report the command and sanitized error rather than
 claiming success.
 ```
 
-The first alpha tester will validate installation on a Mac with no previous One installation.
+Early testers have completed installation and a first tested Workflow on Macs with no previous One installation.
 
 ## Alpha status
 
-**[Download 0.1.0-alpha.2 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.2).**
+**[Download 0.1.0-alpha.3 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.3).**
 
-The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Early alpha testers will validate installation on Macs with no previous One installation.
+The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
 The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and Intel Mac availability has not been announced.
 
@@ -72,6 +72,19 @@ Follow the guide included with each version for installation and your first test
 - Deno is downloaded automatically when needed; this download requires Internet access.
 - Calls to external models or services may require configuration and incur costs.
 - The MiniApp Viewer, voice, and messaging are not included in this first alpha archive.
+
+### Updating an existing One alpha
+
+Stop One and back up its entire data directory and CLI configuration to a private
+location before updating. Download the new archive into a new versioned directory,
+verify it, then start its executable with the same data directory. Run setup again
+with the same CLI configuration and data directory so Workflow calls can use the
+saved Workflow URL without an explicit `--runtime-url`.
+
+New installations create a private encryption key in the data directory. Existing
+alpha databases retain their previous key; this release does not rotate stored
+secrets. Do not change `SECURITY_ENCRYPTION_KEY` without migrating those secrets.
+Keep the entire data directory in your backup and never attach it to an Issue.
 
 ### If you already use Maurice CLI
 
