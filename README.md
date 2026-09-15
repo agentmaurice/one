@@ -25,8 +25,12 @@ building from private sources, or inventing a download URL.
 
 Before installing, check for an existing One installation or legacy maurice CLI.
 Identify the previous One executable and version, any running local One instance,
-and its data directory and CLI configuration without displaying secrets. Keep
-that installation, its data and configuration intact so they remain available.
+and its data directory and CLI configuration paths. Never print raw CLI/runtime
+configuration or environment variables, including supposedly redacted copies.
+Do not rely on top-level YAML masking or regex redaction. Prefer public diagnostics;
+if a file must be inspected, parse it privately and output only an allowlist of
+necessary non-sensitive fields such as paths, versions, ports and health status.
+Keep that installation, its data and configuration intact so they remain available.
 By default, this is a clean installation test, not a migration: use NEW, unused
 data and CLI configuration paths, including the version and a timestamp. Do not
 reuse an existing local or remote context, even when testing the same version again.
@@ -74,7 +78,7 @@ Early testers have completed installation and a first tested Workflow on Macs wi
 
 ## Alpha status
 
-**[Download 0.1.0-alpha.3 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.3).**
+**[Download 0.1.0-alpha.4 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.4).**
 
 The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
@@ -91,6 +95,40 @@ Follow the guide included with each version for installation and your first test
 - Deno is downloaded automatically when needed; this download requires Internet access.
 - Calls to external models or services may require configuration and incur costs.
 - The MiniApp Viewer, voice, and messaging are not included in this first alpha archive.
+
+### Verify an installed One instance
+
+Use the executable, data directory and CLI configuration paths from your installation
+summary. Run `version --json`, `doctor --json`, `ping` and `whoami`, using that executable
+and the same `--config` for every CLI command. After alpha.4 setup, Doctor follows the
+saved local context and reports its data directory and `data_dir_source`. Older contexts
+need setup rerun or an explicit `doctor --data-dir <your-data-directory>`.
+
+Require `running`, `health_ok` and `storage_ok` to be true. These diagnostics do not prove
+Workflow execution. Use this prompt for the first functional test:
+
+```text
+Test my installed One using its exact executable and CLI configuration paths.
+Do not reinstall it or print configuration files, credentials or environment dumps.
+Follow maurice test guide and maurice test example simple --json. Create your own
+isolated test Agent with test setup --fresh --save=false. Write the example's resource
+files, check, commit and deploy with integrated tests. Require verified=true.
+Independently call all three inputs, including the empty string, and compare output
+values and types with independently calculated expectations. Require completed state
+and api_key_revoked=true. Clean up only your Agent and require removed_verified.
+Report PASS, FAIL or NOT TESTED with concise evidence.
+```
+
+Then test a more complex graph:
+
+```text
+Using the same One installation and isolation rules, create a Workflow that processes
+a list of texts with for_each and a subworkflow, without an LLM or external MCP.
+Test several texts, an empty string within the list and an empty list. Declare the
+empty-list policy explicitly. Verify order, count and content through integrated tests
+and independent calls. Verify rejection of an invalid input type, followed by a valid
+call to prove recovery. Clean up your test resources and report verified results.
+```
 
 ### Updating an existing One alpha
 
@@ -121,7 +159,10 @@ Problem: [use the problem encountered in this conversation, or ask me one questi
 about what I was trying to do and what failed].
 
 Work in DEBUG mode: investigate using public help and commands, without modifying
-the product or hiding the failure through a reinstall. Work only on my local One
+the product or hiding the failure through a reinstall. Never display raw configuration
+or environment dumps, even with attempted redaction: prefer public diagnostics or
+parse files privately and emit only explicitly selected non-sensitive fields.
+Work only on my local One
 installation and use synthetic test data. Read https://github.com/agentmaurice/one
 and my version's release notes if accessible. Missing network access or a missing
 binary must not prevent you from producing the report.
@@ -138,7 +179,8 @@ binary must not prevent you from producing the report.
    when available. Do not execute a binary that fails integrity verification.
 
 3. Read maurice help and command-specific help before using commands. Inspect the
-   selected context without displaying secrets; do not switch to a remote service.
+   selected context through public CLI diagnostics; do not print its configuration
+   file or switch to a remote service.
    Using this test's data/configuration paths, run the available local diagnostics
    (doctor, ping, whoami). For each check, record the sanitized command, exit code,
    approximate duration, and a short relevant output excerpt. Report missing commands.
