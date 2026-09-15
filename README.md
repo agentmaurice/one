@@ -55,15 +55,15 @@ The first alpha tester will validate installation on a Mac with no previous One 
 
 ## Alpha status
 
-**The first Mac Apple Silicon distribution is being prepared. No binary has been published here yet.**
+**[Download 0.1.0-alpha.2 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.2).**
 
-The alpha candidate is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Early alpha testers will validate installation on Macs with no previous One installation.
+The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Early alpha testers will validate installation on Macs with no previous One installation.
 
 The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and Intel Mac availability has not been announced.
 
 ## Download and test
 
-Versions will be available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
+Versions are available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
 
 Follow the guide included with each version for installation and your first test. No One installation script has been published yet.
 
