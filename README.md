@@ -23,6 +23,15 @@ instructions and official assets. Check this Mac's compatibility. If no compatib
 release has been published, explain that without installing the legacy CLI,
 building from private sources, or inventing a download URL.
 
+Before installing, check for an existing One installation or legacy maurice CLI.
+Identify the previous One executable and version, any running local One instance,
+and its data directory and CLI configuration without displaying secrets. Keep
+that installation, its data and configuration intact so they remain available.
+By default, this is a clean installation test, not a migration: use NEW, unused
+data and CLI configuration paths, including the version and a timestamp. Do not
+reuse an existing local or remote context, even when testing the same version again.
+Reuse existing data only if I explicitly ask for a migration test.
+
 Download the archive and its SHA-256 file. Verify the checksum before extraction,
 then verify the internal checksums and the Morvan Consulting Developer ID signature.
 Install in a versioned user directory, without sudo or replacing an existing
@@ -30,11 +39,19 @@ installation. Use the absolute path to the new maurice executable.
 If Gatekeeper blocks this signed but unnotarized binary, guide me through approving
 this specific binary in macOS without disabling Gatekeeper globally.
 
-Read maurice help and follow the built-in guidance. Use dedicated One data and CLI
-configuration paths; do not reuse a remote context. Start maurice serve and keep
-a server terminal open. Run setup with the same data-dir and the client matching
+Read the new executable's version and help, and follow its built-in guidance.
+Before starting it, inspect the required ports. If the previous local One instance
+occupies them, stop only that identified One instance cleanly using its documented
+stop command with its exact data directory, or Ctrl+C in its server terminal.
+Verify that it stopped and released the ports. Do not kill processes by name,
+force termination, or stop unrelated services. If the conflicting process cannot
+be identified as the previous One instance, report the conflict before proceeding.
+
+Use the new executable's absolute path and the NEW CLI configuration path for
+every CLI command. Start maurice serve with the NEW data directory and keep a
+server terminal open. Run setup with that same data-dir and the client matching
 your tool, then read the SKILL.md returned by setup. Check doctor, ping, and whoami.
-If ports are occupied, investigate without stopping or modifying an existing instance.
+Verify that these checks target the new instance, not the previous installation.
 
 Read maurice test guide and the public examples and schemas. Create an isolated
 test Agent with test setup --fresh --save=false. Build a small Workflow that takes
@@ -45,7 +62,9 @@ content, not just the status. Do not request cloud credentials if this local sce
 
 Clean up only this test's temporary resources, using public commands and the returned
 identifiers. Keep One installed and preserve its data. Give me the exact commands
-to start, stop, and resume it. Finish with a short summary: version, successful
+to start, stop, and resume it, including the exact binary, data and CLI configuration
+paths. State whether a previous One instance was stopped and where its preserved
+installation and data remain. Finish with a short summary: version, successful
 checks, results of all three calls, and any errors. Do not publish an Issue or any secrets
 without my approval. If blocked, report the command and sanitized error rather than
 claiming success.
