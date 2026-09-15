@@ -11,6 +11,12 @@ Copy this prompt into Claude Code, Cursor, Codex, or another coding assistant wi
 ```text
 Install AgentMaurice One on this Mac and guide me through my first tested Workflow.
 
+Do not preload or follow a previously installed AgentMaurice skill for this task.
+Existing skills may target the legacy CLI or Workspace Control gateway. For this
+One installation, use this repository's instructions first, then the downloaded
+binary's help and the SKILL.md returned by its setup command. If your environment
+automatically loads an older skill, set it aside when it conflicts with this flow.
+
 Start by reading https://github.com/agentmaurice/one and this repository's Releases.
 Use only a published alpha release for macOS Apple Silicon, along with its
 instructions and official assets. Check this Mac's compatibility. If no compatible
