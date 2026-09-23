@@ -96,7 +96,7 @@ less install.sh
 sh install.sh
 ```
 
-The installer verifies the archive and its platform signature, starts One, and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
+The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts One and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
 
 - The local core runs without Docker or a mandatory cloud account.
 - Some extensions require additional dependencies or services.
