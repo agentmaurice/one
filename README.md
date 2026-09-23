@@ -88,7 +88,15 @@ The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and I
 
 Versions are available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
 
-Follow the guide included with each version for installation and your first test. No One installation script has been published yet.
+The current `0.1.0-alpha.4` release does not support the pairing prompt. The scripts below are for the next compatible release and must not be used with alpha.4. Once that release is published, download and inspect the installer before running it:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/agentmaurice/one/main/install.sh
+less install.sh
+sh install.sh
+```
+
+The installer verifies the archive and its platform signature, starts One, and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
 
 - The local core runs without Docker or a mandatory cloud account.
 - Some extensions require additional dependencies or services.
