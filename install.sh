@@ -262,7 +262,17 @@ Run Doctor with --data-dir set to this One directory: $doctor_data_dir"
   esac
 fi
 
-if [ "$official_download" = "1" ]; then
+installation_consent="no"
+if [ "$official_download" = "1" ] && [ -t 0 ] && [ -t 1 ]; then
+  printf '%s' 'Allow AgentMaurice to report this installation (version, OS, architecture and a random installation ID) to get.agentmaurice.app? [y/N] '
+  IFS= read -r installation_consent || installation_consent=""
+fi
+case "$installation_consent" in
+  y|Y|yes|Yes|YES) installation_consent="yes" ;;
+  *) installation_consent="no" ;;
+esac
+
+if [ "$official_download" = "1" ] && [ "$installation_consent" = "yes" ]; then
   installation_id_path="$install_dir/.agentmaurice-one-installation-id"
   if [ -f "$installation_id_path" ]; then
     installation_id="$(cat "$installation_id_path" 2>/dev/null || true)"

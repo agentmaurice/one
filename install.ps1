@@ -163,7 +163,13 @@ try {
             "Run Doctor with --data-dir set to this One directory: $doctorDataDir"
     }
 
-    if ($officialDownload) {
+    $installationConsent = $false
+    if ($officialDownload -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) {
+        $consentAnswer = Read-Host "Allow AgentMaurice to report this installation (version, OS, architecture and a random installation ID) to get.agentmaurice.app? [y/N]"
+        $installationConsent = $consentAnswer -match '^(?i:y|yes)$'
+    }
+
+    if ($officialDownload -and $installationConsent) {
         try {
             $installationIdPath = Join-Path $InstallDir ".agentmaurice-one-installation-id"
             if (Test-Path -LiteralPath $installationIdPath) {
