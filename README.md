@@ -100,9 +100,11 @@ use the AgentMaurice get gateway so archive requests can be counted.
 
 **[Download 0.1.0-alpha.5 for Mac Apple Silicon through get](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=archive)** · [SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=checksum) · [release notes](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.5).
 
+Linux: [amd64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=archive) · [amd64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=checksum) · [arm64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=archive) · [arm64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=checksum).
+
 The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
-The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and Intel Mac availability has not been announced.
+This alpha provides archives for macOS on Apple Silicon (M1 and later) and Linux on amd64 and arm64. Windows and Intel Mac availability has not been announced.
 
 ## Download and test
 
