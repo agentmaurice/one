@@ -2,7 +2,7 @@
 # Install AgentMaurice One for macOS or Linux without system privileges.
 set -eu
 
-default_version="0.1.0-alpha.4"
+default_version="0.1.0-alpha.5"
 version="${AGENTMAURICE_ONE_VERSION:-$default_version}"
 install_dir="${AGENTMAURICE_ONE_INSTALL_DIR:-${HOME:?HOME is required}/.local/bin}"
 release_base_url="${AGENTMAURICE_ONE_RELEASE_BASE_URL:-}"
@@ -18,7 +18,7 @@ Install AgentMaurice One on macOS or Linux.
 Usage: install.sh [--version VERSION] [--install-dir DIR] [--base-url URL] [--home-profile PROFILE]
 
 Options:
-  --version VERSION   Release version (default: 0.1.0-alpha.4)
+  --version VERSION   Release version (default: 0.1.0-alpha.5)
   --install-dir DIR   User-owned binary directory (default: ~/.local/bin)
   --base-url URL      Release directory override for mirrors or testing
   --home-profile      Home access profile: workstation (default) or vm

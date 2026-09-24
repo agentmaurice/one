@@ -58,8 +58,12 @@ be identified as the previous One instance, report the conflict before proceedin
 
 Use the new executable's absolute path and the NEW CLI configuration path for
 every CLI command. Start maurice serve with the NEW data directory and keep a
-server terminal open. Run setup with that same data-dir and the client matching
-your tool, then read the SKILL.md returned by setup. Check doctor, ping, and whoami.
+server terminal open. Run setup with that same data-dir, `--pairing-prompt`, and
+the client matching your tool. Follow the returned prompt to connect this agent;
+it contains a local link valid for 15 minutes and one use. If this agent cannot
+consume it directly, show me the exact prompt to paste into my coding agent.
+Never show the durable access credential. Then read the SKILL.md returned by
+setup. Check doctor, ping, and whoami.
 Verify that these checks target the new instance, not the previous installation.
 
 After setup and doctor succeed, report this successful installation to
@@ -91,11 +95,10 @@ Early testers have completed installation and a first tested Workflow on Macs wi
 
 ## Alpha status
 
-This branch stages the get gateway flow. Its download links become usable only
-after the gateway update is deployed; `0.1.0-alpha.4` still cannot generate the
-post-installation pairing prompt.
+`0.1.0-alpha.5` adds the one-use code-agent pairing prompt. Its download links
+use the AgentMaurice get gateway so archive requests can be counted.
 
-**[Download 0.1.0-alpha.4 for Mac Apple Silicon through get](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.4&os=darwin&arch=arm64&type=archive)** · [SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.4&os=darwin&arch=arm64&type=checksum) · [release notes](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.4).
+**[Download 0.1.0-alpha.5 for Mac Apple Silicon through get](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=archive)** · [SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=checksum) · [release notes](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.5).
 
 The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
@@ -105,7 +108,7 @@ The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and I
 
 Versions and notes are listed under [Releases](https://github.com/agentmaurice/one/releases). Download the archive and checksum through the get links above so the download can be counted. Alpha versions will be marked as prereleases.
 
-The current `0.1.0-alpha.4` release does not support the pairing prompt. The scripts below are for the next compatible release and must not be used with alpha.4. Once that release is published, download and inspect the installer before running it:
+The install scripts default to `0.1.0-alpha.5`. Download and inspect the installer before running it:
 
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/agentmaurice/one/main/install.sh
@@ -125,13 +128,13 @@ does not undo the installation.
 - Some extensions require additional dependencies or services.
 - Deno is downloaded automatically when needed; this download requires Internet access.
 - Calls to external models or services may require configuration and incur costs.
-- The MiniApp Viewer, voice, and messaging are not included in this first alpha archive.
+- The local Viewer is included; voice and messaging are not included.
 
 ### Verify an installed One instance
 
 Use the executable, data directory and CLI configuration paths from your installation
 summary. Run `version --json`, `doctor --json`, `ping` and `whoami`, using that executable
-and the same `--config` for every CLI command. After alpha.4 setup, Doctor follows the
+and the same `--config` for every CLI command. After alpha.5 setup, Doctor follows the
 saved local context and reports its data directory and `data_dir_source`. Older contexts
 need setup rerun or an explicit `doctor --data-dir <your-data-directory>`.
 
