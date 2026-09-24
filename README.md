@@ -36,7 +36,12 @@ data and CLI configuration paths, including the version and a timestamp. Do not
 reuse an existing local or remote context, even when testing the same version again.
 Reuse existing data only if I explicitly ask for a migration test.
 
-Download the archive and its SHA-256 file. Verify the checksum before extraction,
+Download the archive and its SHA-256 file through
+https://get.agentmaurice.app/products/one/download with the published version,
+os=darwin, arch=arm64, and type=archive or type=checksum. Follow only a redirect
+to the matching asset in the official agentmaurice/one GitHub release. If the
+gateway is unavailable, report the error instead of silently bypassing it.
+Verify the checksum before extraction,
 then verify the internal checksums and the Morvan Consulting Developer ID signature.
 Install in a versioned user directory, without sudo or replacing an existing
 installation. Use the absolute path to the new maurice executable.
@@ -53,9 +58,21 @@ be identified as the previous One instance, report the conflict before proceedin
 
 Use the new executable's absolute path and the NEW CLI configuration path for
 every CLI command. Start maurice serve with the NEW data directory and keep a
-server terminal open. Run setup with that same data-dir and the client matching
-your tool, then read the SKILL.md returned by setup. Check doctor, ping, and whoami.
+server terminal open. Run setup with that same data-dir, `--pairing-prompt`, and
+the client matching your tool. Follow the returned prompt to connect this agent;
+it contains a local link valid for 15 minutes and one use. If this agent cannot
+consume it directly, show me the exact prompt to paste into my coding agent.
+Never show the durable access credential. Then read the SKILL.md returned by
+setup. Check doctor, ping, and whoami.
 Verify that these checks target the new instance, not the previous installation.
+
+After setup and doctor succeed, report this successful installation to
+https://get.agentmaurice.app/products/one/installations. Create a random 32-hex
+installation ID in the new installation directory with private file permissions,
+and reuse it if retrying this same installation. POST JSON containing only
+installation_id, version, os=darwin, and arch=arm64. Do not send my name,
+account, local paths, configuration, pairing link, or credentials. Tell me if
+the report could not be sent; the installed One remains usable.
 
 Read maurice test guide and the public examples and schemas. Create an isolated
 test Agent with test setup --fresh --save=false. Build a small Workflow that takes
@@ -78,29 +95,50 @@ Early testers have completed installation and a first tested Workflow on Macs wi
 
 ## Alpha status
 
-**[Download 0.1.0-alpha.4 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.4).**
+`0.1.0-alpha.5` adds the one-use code-agent pairing prompt. Its download links
+use the AgentMaurice get gateway so archive requests can be counted.
+
+**[Download 0.1.0-alpha.5 for Mac Apple Silicon through get](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=archive)** · [SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=darwin&arch=arm64&type=checksum) · [release notes](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.5).
+
+Linux: [amd64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=archive) · [amd64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=checksum) · [arm64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=archive) · [arm64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=checksum).
 
 The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
-The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and Intel Mac availability has not been announced.
+This alpha provides archives for macOS on Apple Silicon (M1 and later) and Linux on amd64 and arm64. Windows and Intel Mac availability has not been announced.
 
 ## Download and test
 
-Versions are available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
+Versions and notes are listed under [Releases](https://github.com/agentmaurice/one/releases). Download the archive and checksum through the get links above so the download can be counted. Alpha versions will be marked as prereleases.
 
-Follow the guide included with each version for installation and your first test. No One installation script has been published yet.
+The install scripts default to `0.1.0-alpha.5`. Download and inspect the installer before running it:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/agentmaurice/one/main/install.sh
+less install.sh
+sh install.sh
+```
+
+The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts One and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
+
+After the agent connects, run Doctor with `--data-dir` set to the One data directory shown by the installer. The connected agent context does not store that directory.
+
+After a successful setup, the official installer sends the version, platform,
+and a random pseudonymous installation ID to get. Retrying in the same install directory
+reuses the ID. This measures installations, not distinct people or active users;
+no account, local path, pairing link, or credential is sent. A reporting failure
+does not undo the installation.
 
 - The local core runs without Docker or a mandatory cloud account.
 - Some extensions require additional dependencies or services.
 - Deno is downloaded automatically when needed; this download requires Internet access.
 - Calls to external models or services may require configuration and incur costs.
-- The MiniApp Viewer, voice, and messaging are not included in this first alpha archive.
+- The local Viewer is included; voice and messaging are not included.
 
 ### Verify an installed One instance
 
 Use the executable, data directory and CLI configuration paths from your installation
 summary. Run `version --json`, `doctor --json`, `ping` and `whoami`, using that executable
-and the same `--config` for every CLI command. After alpha.4 setup, Doctor follows the
+and the same `--config` for every CLI command. After alpha.5 setup, Doctor follows the
 saved local context and reports its data directory and `data_dir_source`. Older contexts
 need setup rerun or an explicit `doctor --data-dir <your-data-directory>`.
 
