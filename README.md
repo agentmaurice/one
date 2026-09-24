@@ -36,7 +36,12 @@ data and CLI configuration paths, including the version and a timestamp. Do not
 reuse an existing local or remote context, even when testing the same version again.
 Reuse existing data only if I explicitly ask for a migration test.
 
-Download the archive and its SHA-256 file. Verify the checksum before extraction,
+Download the archive and its SHA-256 file through
+https://get.agentmaurice.app/products/one/download with the published version,
+os=darwin, arch=arm64, and type=archive or type=checksum. Follow only a redirect
+to the matching asset in the official agentmaurice/one GitHub release. If the
+gateway is unavailable, report the error instead of silently bypassing it.
+Verify the checksum before extraction,
 then verify the internal checksums and the Morvan Consulting Developer ID signature.
 Install in a versioned user directory, without sudo or replacing an existing
 installation. Use the absolute path to the new maurice executable.
@@ -56,6 +61,14 @@ every CLI command. Start maurice serve with the NEW data directory and keep a
 server terminal open. Run setup with that same data-dir and the client matching
 your tool, then read the SKILL.md returned by setup. Check doctor, ping, and whoami.
 Verify that these checks target the new instance, not the previous installation.
+
+After setup and doctor succeed, report this successful installation to
+https://get.agentmaurice.app/products/one/installations. Create a random 32-hex
+installation ID in the new installation directory with private file permissions,
+and reuse it if retrying this same installation. POST JSON containing only
+installation_id, version, os=darwin, and arch=arm64. Do not send my name,
+account, local paths, configuration, pairing link, or credentials. Tell me if
+the report could not be sent; the installed One remains usable.
 
 Read maurice test guide and the public examples and schemas. Create an isolated
 test Agent with test setup --fresh --save=false. Build a small Workflow that takes
@@ -78,7 +91,11 @@ Early testers have completed installation and a first tested Workflow on Macs wi
 
 ## Alpha status
 
-**[Download 0.1.0-alpha.4 for Mac Apple Silicon](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.4).**
+This branch stages the get gateway flow. Its download links become usable only
+after the gateway update is deployed; `0.1.0-alpha.4` still cannot generate the
+post-installation pairing prompt.
+
+**[Download 0.1.0-alpha.4 for Mac Apple Silicon through get](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.4&os=darwin&arch=arm64&type=archive)** · [SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.4&os=darwin&arch=arm64&type=checksum) · [release notes](https://github.com/agentmaurice/one/releases/tag/v0.1.0-alpha.4).
 
 The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
 
@@ -86,7 +103,7 @@ The first target is macOS on Apple Silicon (M1 and later). Windows, Linux, and I
 
 ## Download and test
 
-Versions are available under [Releases](https://github.com/agentmaurice/one/releases), with the archive, its SHA-256 checksum, installation instructions, and known limitations. Alpha versions will be marked as prereleases.
+Versions and notes are listed under [Releases](https://github.com/agentmaurice/one/releases). Download the archive and checksum through the get links above so the download can be counted. Alpha versions will be marked as prereleases.
 
 The current `0.1.0-alpha.4` release does not support the pairing prompt. The scripts below are for the next compatible release and must not be used with alpha.4. Once that release is published, download and inspect the installer before running it:
 
@@ -97,6 +114,12 @@ sh install.sh
 ```
 
 The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts One and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
+
+After a successful setup, the official installer sends the version, platform,
+and a random pseudonymous installation ID to get. Retrying in the same install directory
+reuses the ID. This measures installations, not distinct people or active users;
+no account, local path, pairing link, or credential is sent. A reporting failure
+does not undo the installation.
 
 - The local core runs without Docker or a mandatory cloud account.
 - Some extensions require additional dependencies or services.

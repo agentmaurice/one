@@ -6,6 +6,7 @@ default_version="0.1.0-alpha.4"
 version="${AGENTMAURICE_ONE_VERSION:-$default_version}"
 install_dir="${AGENTMAURICE_ONE_INSTALL_DIR:-${HOME:?HOME is required}/.local/bin}"
 release_base_url="${AGENTMAURICE_ONE_RELEASE_BASE_URL:-}"
+get_base_url="${AGENTMAURICE_ONE_GET_BASE_URL:-https://get.agentmaurice.app}"
 home_profile="${AGENTMAURICE_ONE_HOME_PROFILE:-workstation}"
 tmp_dir=""
 staged_binary=""
@@ -105,10 +106,14 @@ case "$os" in
   linux) archive_name="${bundle_name}.tar.gz" ;;
 esac
 
-if [ -z "$release_base_url" ]; then
-  release_base_url="https://github.com/agentmaurice/one/releases/download/v${version}"
+get_base_url="${get_base_url%/}"
+official_download=1
+if [ -n "$release_base_url" ]; then
+  release_base_url="${release_base_url%/}"
+  official_download=0
+else
+  release_base_url="$get_base_url/products/one/download"
 fi
-release_base_url="${release_base_url%/}"
 
 case "$release_base_url" in
   https://*) allow_http=0 ;;
@@ -127,7 +132,7 @@ download() {
     if [ "$allow_http" = "1" ]; then
       curl --fail --silent --show-error --location "$download_url" --output "$download_path"
     else
-      curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+      curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
         "$download_url" --output "$download_path"
     fi
   elif command -v wget >/dev/null 2>&1; then
@@ -163,13 +168,19 @@ verify_inner_checksums() {
 tmp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t agentmaurice-one)"
 archive_path="$tmp_dir/$archive_name"
 checksum_path="$archive_path.sha256"
-archive_url="$release_base_url/$archive_name"
+if [ "$official_download" = "1" ]; then
+  archive_url="$release_base_url?version=$version&os=$os&arch=$arch&type=archive"
+  checksum_url="$release_base_url?version=$version&os=$os&arch=$arch&type=checksum"
+else
+  archive_url="$release_base_url/$archive_name"
+  checksum_url="$archive_url.sha256"
+fi
 
 printf 'Downloading %s\n' "$archive_name"
 download "$archive_url" "$archive_path" \
   || die "release asset is unavailable for ${os}/${arch}: $archive_url"
-download "$archive_url.sha256" "$checksum_path" \
-  || die "checksum is unavailable for ${os}/${arch}: $archive_url.sha256"
+download "$checksum_url" "$checksum_path" \
+  || die "checksum is unavailable for ${os}/${arch}: $checksum_url"
 
 expected_checksum="$(awk 'NR == 1 {print $1}' "$checksum_path" | tr '[:upper:]' '[:lower:]')"
 printf '%s\n' "$expected_checksum" | grep -Eq '^[0-9a-f]{64}$' \
@@ -232,5 +243,53 @@ if [ "$home_profile" = "vm" ]; then
 else
   printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
   "$install_dir/maurice" start --wait 120s
-  "$install_dir/maurice" setup --pairing-prompt
+  pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
+fi
+
+if [ "$official_download" = "1" ]; then
+  installation_id_path="$install_dir/.agentmaurice-one-installation-id"
+  if [ -f "$installation_id_path" ]; then
+    installation_id="$(cat "$installation_id_path" 2>/dev/null || true)"
+  else
+    installation_id="$(LC_ALL=C od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' || true)"
+    if printf '%s\n' "$installation_id" | grep -Eq '^[0-9a-f]{32}$'; then
+      (umask 077; printf '%s\n' "$installation_id" > "$installation_id_path") \
+        || installation_id=""
+    fi
+  fi
+  if printf '%s\n' "$installation_id" | grep -Eq '^[0-9a-f]{32}$'; then
+    installation_payload="$(printf '{"installation_id":"%s","version":"%s","os":"%s","arch":"%s"}' \
+      "$installation_id" "$version" "$os" "$arch")"
+    if command -v curl >/dev/null 2>&1; then
+      if [ "$allow_http" = "1" ]; then
+        curl --fail --silent --show-error --max-time 10 -H 'Content-Type: application/json' \
+          --data "$installation_payload" "$get_base_url/products/one/installations" >/dev/null \
+          || printf 'Installation succeeded; installation count could not be reported.\n' >&2
+      else
+        curl --fail --silent --show-error --max-time 10 --proto '=https' --tlsv1.2 \
+          -H 'Content-Type: application/json' --data "$installation_payload" \
+          "$get_base_url/products/one/installations" >/dev/null \
+            || printf 'Installation succeeded; installation count could not be reported.\n' >&2
+      fi
+    elif command -v wget >/dev/null 2>&1; then
+      if [ "$allow_http" = "1" ]; then
+        wget -q --timeout=10 --header='Content-Type: application/json' \
+          --post-data="$installation_payload" -O /dev/null \
+          "$get_base_url/products/one/installations" \
+          || printf 'Installation succeeded; installation count could not be reported.\n' >&2
+      else
+        wget -q --https-only --timeout=10 --header='Content-Type: application/json' \
+          --post-data="$installation_payload" -O /dev/null \
+          "$get_base_url/products/one/installations" \
+          || printf 'Installation succeeded; installation count could not be reported.\n' >&2
+      fi
+    else
+      printf 'Installation succeeded; installation count requires curl or wget.\n' >&2
+    fi
+  else
+    printf 'Installation succeeded; installation count could not be prepared.\n' >&2
+  fi
+fi
+if [ "$home_profile" != "vm" ]; then
+  printf '%s\n' "$pairing_prompt"
 fi

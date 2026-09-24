@@ -4,6 +4,7 @@ param(
     [string]$Version = $(if ($env:AGENTMAURICE_ONE_VERSION) { $env:AGENTMAURICE_ONE_VERSION } else { "0.1.0-alpha.4" }),
     [string]$InstallDir = $(if ($env:AGENTMAURICE_ONE_INSTALL_DIR) { $env:AGENTMAURICE_ONE_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "AgentMaurice\bin" }),
     [string]$ReleaseBaseUrl = $env:AGENTMAURICE_ONE_RELEASE_BASE_URL,
+    [string]$GetBaseUrl = $(if ($env:AGENTMAURICE_ONE_GET_BASE_URL) { $env:AGENTMAURICE_ONE_GET_BASE_URL } else { "https://get.agentmaurice.app" }),
     [switch]$AddToPath
 )
 
@@ -30,10 +31,14 @@ switch ($architecture) {
 
 $bundleName = "agentmaurice-one-$Version-windows-$arch"
 $archiveName = "$bundleName.zip"
-if ([string]::IsNullOrWhiteSpace($ReleaseBaseUrl)) {
-    $ReleaseBaseUrl = "https://github.com/agentmaurice/one/releases/download/v$Version"
+$officialDownload = [string]::IsNullOrWhiteSpace($ReleaseBaseUrl)
+$GetBaseUrl = $GetBaseUrl.TrimEnd('/')
+if ($officialDownload) {
+    $ReleaseBaseUrl = "$GetBaseUrl/products/one/download"
 }
-$ReleaseBaseUrl = $ReleaseBaseUrl.TrimEnd('/')
+else {
+    $ReleaseBaseUrl = $ReleaseBaseUrl.TrimEnd('/')
+}
 if ($ReleaseBaseUrl -notmatch '^https://') {
     $localHttp = $ReleaseBaseUrl -match '^http://(127\.0\.0\.1|localhost)(:[0-9]+)?($|/)'
     if (-not ($localHttp -and $env:AGENTMAURICE_ONE_ALLOW_HTTP -eq "1")) {
@@ -49,11 +54,18 @@ $backupBinary = $null
 
 try {
     New-Item -ItemType Directory -Path $tempRoot | Out-Null
-    $archiveUrl = "$ReleaseBaseUrl/$archiveName"
+    if ($officialDownload) {
+        $archiveUrl = "${ReleaseBaseUrl}?version=$Version&os=windows&arch=$arch&type=archive"
+        $checksumUrl = "${ReleaseBaseUrl}?version=$Version&os=windows&arch=$arch&type=checksum"
+    }
+    else {
+        $archiveUrl = "$ReleaseBaseUrl/$archiveName"
+        $checksumUrl = "$archiveUrl.sha256"
+    }
     Write-Host "Downloading $archiveName"
     try {
         Invoke-WebRequest -Uri $archiveUrl -OutFile $archivePath -UseBasicParsing
-        Invoke-WebRequest -Uri "$archiveUrl.sha256" -OutFile $checksumPath -UseBasicParsing
+        Invoke-WebRequest -Uri $checksumUrl -OutFile $checksumPath -UseBasicParsing
     }
     catch {
         throw "Release asset is unavailable for windows/$arch at $archiveUrl. $($_.Exception.Message)"
@@ -129,8 +141,37 @@ try {
     Write-Host "Starting One and creating a temporary code-agent pairing prompt..."
     & $destination start --wait 120s
     if ($LASTEXITCODE -ne 0) { throw "One could not start; the binary is installed at $destination" }
-    & $destination setup --pairing-prompt
+    $pairingPrompt = & $destination setup --pairing-prompt
     if ($LASTEXITCODE -ne 0) { throw "One setup or pairing failed; the binary is installed at $destination" }
+
+    if ($officialDownload) {
+        try {
+            $installationIdPath = Join-Path $InstallDir ".agentmaurice-one-installation-id"
+            if (Test-Path -LiteralPath $installationIdPath) {
+                $installationId = (Get-Content -LiteralPath $installationIdPath -Raw).Trim()
+                if ($installationId -notmatch '^[0-9a-f]{32}$') {
+                    throw "Stored installation ID is invalid"
+                }
+            }
+            else {
+                $installationId = [System.Guid]::NewGuid().ToString("N")
+                [System.IO.File]::WriteAllText($installationIdPath, "$installationId`n")
+            }
+            $installationPayload = @{
+                installation_id = $installationId
+                version = $Version
+                os = "windows"
+                arch = $arch
+            } | ConvertTo-Json -Compress
+            Invoke-WebRequest -Uri "$GetBaseUrl/products/one/installations" -Method Post `
+                -ContentType "application/json" -Body $installationPayload -TimeoutSec 10 `
+                -UseBasicParsing | Out-Null
+        }
+        catch {
+            Write-Warning "Installation succeeded; installation count could not be reported."
+        }
+    }
+    $pairingPrompt | Write-Output
 }
 finally {
     if ($stagedBinary -and (Test-Path -LiteralPath $stagedBinary)) {
