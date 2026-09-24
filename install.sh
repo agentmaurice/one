@@ -244,6 +244,22 @@ else
   printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
   "$install_dir/maurice" start --wait 120s
   pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
+  doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
+  doctor_data_dir="${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}"
+  case "$pairing_prompt" in
+    *'maurice doctor --json'*)
+      prompt_before="${pairing_prompt%%"maurice doctor --json"*}"
+      prompt_after="${pairing_prompt#*"maurice doctor --json"}"
+      pairing_prompt="${prompt_before}maurice doctor --data-dir ONE_DATA_DIR --json${prompt_after}
+
+One data directory (replace ONE_DATA_DIR with this path): $doctor_data_dir"
+      ;;
+    *)
+      pairing_prompt="$pairing_prompt
+
+Run Doctor with --data-dir set to this One directory: $doctor_data_dir"
+      ;;
+  esac
 fi
 
 if [ "$official_download" = "1" ]; then

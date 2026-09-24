@@ -120,6 +120,8 @@ sh install.sh
 
 The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts One and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
 
+After the agent connects, run Doctor with `--data-dir` set to the One data directory shown by the installer. The connected agent context does not store that directory.
+
 After a successful setup, the official installer sends the version, platform,
 and a random pseudonymous installation ID to get. Retrying in the same install directory
 reuses the ID. This measures installations, not distinct people or active users;

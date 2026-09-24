@@ -143,6 +143,25 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "One could not start; the binary is installed at $destination" }
     $pairingPrompt = & $destination setup --pairing-prompt
     if ($LASTEXITCODE -ne 0) { throw "One setup or pairing failed; the binary is installed at $destination" }
+    $doctorStatus = $null
+    try { $doctorStatus = & $destination status --json 2>$null | ConvertFrom-Json } catch { }
+    $doctorDataDir = if ($doctorStatus -and $doctorStatus.data_dir) {
+        $doctorStatus.data_dir
+    } elseif ($env:APP_DATA_DIR) {
+        $env:APP_DATA_DIR
+    } else {
+        Join-Path $HOME ".maurice\one"
+    }
+    $pairingPrompt = $pairingPrompt -join [Environment]::NewLine
+    if ($pairingPrompt.Contains("maurice doctor --json")) {
+        $pairingPrompt = $pairingPrompt.Replace(
+            "maurice doctor --json", "maurice doctor --data-dir ONE_DATA_DIR --json")
+        $pairingPrompt += [Environment]::NewLine + [Environment]::NewLine +
+            "One data directory (replace ONE_DATA_DIR with this path): $doctorDataDir"
+    } else {
+        $pairingPrompt += [Environment]::NewLine + [Environment]::NewLine +
+            "Run Doctor with --data-dir set to this One directory: $doctorDataDir"
+    }
 
     if ($officialDownload) {
         try {
