@@ -4,8 +4,13 @@
 # Keep that file identical to this one.
 set -eu
 
-default_version="0.1.0-alpha.5"
-version="${AGENTMAURICE_ONE_VERSION:-$default_version}"
+# An explicit version stays pinned. Otherwise the newest GitHub release that
+# contains an archive for this machine is selected at install time.
+version="${AGENTMAURICE_ONE_VERSION:-}"
+version_explicit=0
+if [ -n "$version" ]; then
+  version_explicit=1
+fi
 install_dir="${AGENTMAURICE_ONE_INSTALL_DIR:-${HOME:?HOME is required}/.local/bin}"
 release_base_url="${AGENTMAURICE_ONE_RELEASE_BASE_URL:-}"
 get_base_url="${AGENTMAURICE_ONE_GET_BASE_URL:-https://get.agentmaurice.app}"
@@ -30,7 +35,7 @@ Install AgentMaurice One on macOS or Linux.
 Usage: install.sh [--version VERSION] [--install-dir DIR] [--base-url URL] [--home-profile PROFILE] [--data-dir DIR] [--no-autostart] [--report-installation]
 
 Options:
-  --version VERSION      Release version (default: 0.1.0-alpha.5)
+  --version VERSION      Release version (default: newest public archive for this machine)
   --install-dir DIR      User-owned binary directory (default: ~/.local/bin)
   --base-url URL         Release directory override for mirrors or testing
   --home-profile         Home access profile: workstation (default), vm or vm-managed
@@ -76,6 +81,7 @@ while [ "$#" -gt 0 ]; do
     --version)
       [ "$#" -ge 2 ] || die '--version requires a value'
       version="$2"
+      version_explicit=1
       shift 2
       ;;
     --install-dir)
@@ -116,8 +122,6 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$' \
-  || die "invalid version: $version"
 [ -n "$install_dir" ] || die 'install directory cannot be empty'
 case "$home_profile" in
   workstation|vm|vm-managed) ;;
@@ -142,12 +146,6 @@ case "$arch_name" in
   x86_64|amd64) arch="amd64" ;;
   arm64|aarch64) arch="arm64" ;;
   *) die "unsupported architecture: $arch_name" ;;
-esac
-
-bundle_name="agentmaurice-one-${version}-${os}-${arch}"
-case "$os" in
-  darwin) archive_name="${bundle_name}-signed.tar.gz" ;;
-  linux) archive_name="${bundle_name}.tar.gz" ;;
 esac
 
 get_base_url="${get_base_url%/}"
@@ -209,7 +207,81 @@ verify_inner_checksums() {
   fi
 }
 
+# GitHub lists releases newest first. The first asset for this OS and
+# architecture is the current archive. /releases/latest is not used: alphas
+# are prereleases. This runs inside a command substitution, so it returns
+# instead of exiting the installer.
+resolve_current_version() {
+  releases_url="${AGENTMAURICE_ONE_RELEASES_URL:-https://api.github.com/repos/agentmaurice/one/releases?per_page=30}"
+  releases_path="$tmp_dir/github-releases.json"
+  download "$releases_url" "$releases_path" || return 1
+  case "$os" in
+    darwin) asset_suffix="-signed.tar.gz" ;;
+    linux) asset_suffix=".tar.gz" ;;
+  esac
+  matched="$(grep -o "agentmaurice-one-[0-9][0-9A-Za-z.-]*-${os}-${arch}${asset_suffix}\"" "$releases_path" | head -n 1 || true)"
+  [ -n "$matched" ] || return 1
+  name="${matched%\"}"
+  prefix="agentmaurice-one-"
+  rest="${name#"$prefix"}"
+  suffix="-${os}-${arch}${asset_suffix}"
+  printf '%s\n' "${rest%"$suffix"}"
+}
+
+alpha_parts() {
+  printf '%s\n' "$1" | sed -n 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-alpha\.\([0-9][0-9]*\)$/\1 \2 \3 \4/p'
+}
+
+alpha_field() {
+  printf '%s\n' "$2" | awk -v n="$1" '{print $n}'
+}
+
+# 0 when the installed alpha is the same or newer, 1 otherwise.
+installed_is_current_or_newer() {
+  installed_parts="$(alpha_parts "$1")"
+  target_parts="$(alpha_parts "$2")"
+  [ -n "$installed_parts" ] && [ -n "$target_parts" ] || return 1
+  installed_major="$(alpha_field 1 "$installed_parts")"
+  installed_minor="$(alpha_field 2 "$installed_parts")"
+  installed_patch="$(alpha_field 3 "$installed_parts")"
+  installed_alpha="$(alpha_field 4 "$installed_parts")"
+  target_major="$(alpha_field 1 "$target_parts")"
+  target_minor="$(alpha_field 2 "$target_parts")"
+  target_patch="$(alpha_field 3 "$target_parts")"
+  target_alpha="$(alpha_field 4 "$target_parts")"
+  [ "$installed_major" -gt "$target_major" ] && return 0
+  [ "$installed_major" -lt "$target_major" ] && return 1
+  [ "$installed_minor" -gt "$target_minor" ] && return 0
+  [ "$installed_minor" -lt "$target_minor" ] && return 1
+  [ "$installed_patch" -gt "$target_patch" ] && return 0
+  [ "$installed_patch" -lt "$target_patch" ] && return 1
+  [ "$installed_alpha" -ge "$target_alpha" ]
+}
+
+keep_installed_when_current_or_newer() {
+  [ -x "$install_dir/maurice" ] || return 0
+  installed_json="$("$install_dir/maurice" version --json 2>/dev/null || true)"
+  installed_version="$(printf '%s\n' "$installed_json" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  [ -n "$installed_version" ] || return 0
+  installed_is_current_or_newer "$installed_version" "$version" || return 0
+  printf 'AgentMaurice One %s is already installed and is current or newer than %s. Keeping it.\n' \
+    "$installed_version" "$version"
+  exit 0
+}
+
 tmp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t agentmaurice-one)"
+if [ "$version_explicit" = "0" ]; then
+  version="$(resolve_current_version)" || die "no public archive for ${os}/${arch}"
+  keep_installed_when_current_or_newer
+fi
+printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$' \
+  || die "invalid version: $version"
+
+bundle_name="agentmaurice-one-${version}-${os}-${arch}"
+case "$os" in
+  darwin) archive_name="${bundle_name}-signed.tar.gz" ;;
+  linux) archive_name="${bundle_name}.tar.gz" ;;
+esac
 archive_path="$tmp_dir/$archive_name"
 checksum_path="$archive_path.sha256"
 if [ "$official_download" = "1" ]; then
