@@ -1,5 +1,7 @@
 #!/bin/sh
 # Install AgentMaurice One for macOS or Linux without system privileges.
+# Public copy: https://github.com/agentmaurice/one/blob/main/install.sh
+# Keep that file identical to this one.
 set -eu
 
 default_version="0.1.0-alpha.5"
@@ -8,21 +10,34 @@ install_dir="${AGENTMAURICE_ONE_INSTALL_DIR:-${HOME:?HOME is required}/.local/bi
 release_base_url="${AGENTMAURICE_ONE_RELEASE_BASE_URL:-}"
 get_base_url="${AGENTMAURICE_ONE_GET_BASE_URL:-https://get.agentmaurice.app}"
 home_profile="${AGENTMAURICE_ONE_HOME_PROFILE:-workstation}"
+data_dir="${AGENTMAURICE_ONE_DATA_DIR:-}"
+autostart=1
+report_installation=0
+posthog_capture_url="${AGENTMAURICE_ONE_POSTHOG_URL:-https://eu.i.posthog.com/capture/}"
+# Public PostHog project token (ingestion id), same value as the site. Not a personal API key.
+posthog_token="phc_rfjXHGWoDmeTtsRzQmLm8y8D3couhn7CiC53dyob8ftE"
 tmp_dir=""
 staged_binary=""
+staged_viewer=""
+backup_viewer=""
+viewer_swapped=0
+viewer_committed=0
 
 usage() {
   cat <<'EOF'
 Install AgentMaurice One on macOS or Linux.
 
-Usage: install.sh [--version VERSION] [--install-dir DIR] [--base-url URL] [--home-profile PROFILE]
+Usage: install.sh [--version VERSION] [--install-dir DIR] [--base-url URL] [--home-profile PROFILE] [--data-dir DIR] [--no-autostart] [--report-installation]
 
 Options:
-  --version VERSION   Release version (default: 0.1.0-alpha.5)
-  --install-dir DIR   User-owned binary directory (default: ~/.local/bin)
-  --base-url URL      Release directory override for mirrors or testing
-  --home-profile      Home access profile: workstation (default) or vm
-  -h, --help          Show this help
+  --version VERSION      Release version (default: 0.1.0-alpha.5)
+  --install-dir DIR      User-owned binary directory (default: ~/.local/bin)
+  --base-url URL         Release directory override for mirrors or testing
+  --home-profile         Home access profile: workstation (default), vm or vm-managed
+  --data-dir DIR         Persistent One data directory (default: ~/.maurice/one)
+  --no-autostart         Install the binary without registering a startup service
+  --report-installation  Count this install without a prompt (version, OS, architecture, random id)
+  -h, --help             Show this help
 
 The installer downloads only the One release archive. Deno and the embedded
 services are managed by One itself when it starts.
@@ -35,6 +50,18 @@ die() {
 }
 
 cleanup() {
+  if [ "$viewer_swapped" = "1" ] && [ "$viewer_committed" = "0" ]; then
+    rm -rf "$install_dir/viewer"
+    if [ -n "$backup_viewer" ] && [ -d "$backup_viewer" ]; then
+      mv "$backup_viewer" "$install_dir/viewer"
+    fi
+  fi
+  if [ -n "$backup_viewer" ] && [ -d "$backup_viewer" ]; then
+    rm -rf "$backup_viewer"
+  fi
+  if [ -n "$staged_viewer" ] && [ -d "$staged_viewer" ]; then
+    rm -rf "$staged_viewer"
+  fi
   if [ -n "$staged_binary" ] && [ -e "$staged_binary" ]; then
     rm -f "$staged_binary"
   fi
@@ -66,6 +93,19 @@ while [ "$#" -gt 0 ]; do
       home_profile="$2"
       shift 2
       ;;
+    --data-dir)
+      [ "$#" -ge 2 ] || die '--data-dir requires a value'
+      data_dir="$2"
+      shift 2
+      ;;
+    --no-autostart)
+      autostart=0
+      shift
+      ;;
+    --report-installation)
+      report_installation=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -80,7 +120,7 @@ printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Z
   || die "invalid version: $version"
 [ -n "$install_dir" ] || die 'install directory cannot be empty'
 case "$home_profile" in
-  workstation|vm) ;;
+  workstation|vm|vm-managed) ;;
   *) die "unsupported home profile: $home_profile" ;;
 esac
 
@@ -90,8 +130,12 @@ case "$os_name" in
   Linux) os="linux" ;;
   *) die "unsupported operating system: $os_name" ;;
 esac
-[ "$home_profile" != "vm" ] || [ "$os" = "linux" ] \
-  || die 'the vm home profile is supported only by the Linux installer'
+[ "$home_profile" = "workstation" ] || [ "$os" = "linux" ] \
+  || die "the $home_profile home profile is supported only by the Linux installer"
+# The managed VM is installed by the AgentMaurice runner, which writes the
+# Console enrollment and Hanko settings before One starts.
+[ "$home_profile" != "vm-managed" ] || [ -r /etc/agentmaurice/one.env ] || sudo -n test -f /etc/agentmaurice/one.env 2>/dev/null \
+  || die 'the vm-managed profile requires /etc/agentmaurice/one.env written by the AgentMaurice runner'
 
 arch_name="$(uname -m)"
 case "$arch_name" in
@@ -203,6 +247,11 @@ binary_path="$bundle_dir/maurice"
 [ -f "$binary_path" ] || die 'release archive does not contain maurice'
 [ -f "$bundle_dir/SHA256SUMS" ] || die 'release archive does not contain SHA256SUMS'
 verify_inner_checksums "$bundle_dir" || die 'release contents failed checksum verification'
+viewer_path="$bundle_dir/viewer"
+[ -f "$viewer_path/index.html" ] && [ -f "$viewer_path/.bundled-viewer.json" ] \
+  || die 'release archive does not contain the pinned One viewer'
+[ -z "$(find "$viewer_path" -type l -print -quit)" ] \
+  || die 'release viewer contains symbolic links'
 
 if [ "$os" = "darwin" ]; then
   command -v codesign >/dev/null 2>&1 || die 'codesign is required on macOS'
@@ -218,13 +267,30 @@ fi
 chmod 755 "$binary_path"
 "$binary_path" version --json >/dev/null \
   || die 'downloaded maurice binary did not start successfully'
+if [ "$autostart" = "1" ] && ! "$binary_path" service --help >/dev/null 2>&1; then
+  # Releases before `maurice service` still install: One is started manually.
+  printf 'This One release does not support automatic startup; One will be started without registering a startup service.\n' >&2
+  autostart="0"
+fi
 
 mkdir -p "$install_dir"
+[ ! -e "$install_dir/viewer" ] || [ -f "$install_dir/viewer/.bundled-viewer.json" ] \
+  || die 'install directory already contains an unrelated viewer directory'
+staged_viewer="$install_dir/.viewer.install.$$"
+cp -R "$viewer_path" "$staged_viewer"
 staged_binary="$install_dir/.maurice.install.$$"
 cp "$binary_path" "$staged_binary"
 chmod 755 "$staged_binary"
+if [ -d "$install_dir/viewer" ]; then
+  backup_viewer="$install_dir/.viewer.backup.$$"
+  mv "$install_dir/viewer" "$backup_viewer"
+fi
+viewer_swapped=1
+mv "$staged_viewer" "$install_dir/viewer"
+staged_viewer=""
 mv -f "$staged_binary" "$install_dir/maurice"
 staged_binary=""
+viewer_committed=1
 
 printf '\nAgentMaurice One %s installed at %s/maurice\n' "$version" "$install_dir"
 case ":${PATH:-}:" in
@@ -236,16 +302,53 @@ case ":${PATH:-}:" in
 esac
 printf 'Next: maurice help\n'
 printf 'Deno and embedded services are managed by One; do not install them separately.\n'
-if [ "$home_profile" = "vm" ]; then
-  "$install_dir/maurice" home-bootstrap --profile vm
-  printf 'Start the VM runtime with: maurice serve --home-profile vm\n'
+if [ "$home_profile" = "vm-managed" ]; then
+  printf 'Managed One VM: people sign in with their AgentMaurice account; One listens only on loopback behind the edge.\n'
+  if [ "$autostart" = "1" ]; then
+    if [ -n "$data_dir" ]; then
+      "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
+        || die 'automatic startup failed or One is not enrolled in the Console; check maurice service status and maurice doctor --json'
+    else
+      "$install_dir/maurice" service install --home-profile "$home_profile" \
+        || die 'automatic startup failed or One is not enrolled in the Console; check maurice service status and maurice doctor --json'
+    fi
+  fi
+elif [ "$home_profile" = "vm" ]; then
+  if [ -n "$data_dir" ]; then
+    "$install_dir/maurice" home-bootstrap --profile vm --data-dir "$data_dir"
+  else
+    "$install_dir/maurice" home-bootstrap --profile vm
+  fi
   printf 'Reach One through an SSH tunnel to 127.0.0.1:4000; it is not published on the Internet by default.\n'
+  if [ "$autostart" = "1" ]; then
+    if [ -n "$data_dir" ]; then
+      "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
+        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+    else
+      "$install_dir/maurice" service install --home-profile "$home_profile" \
+        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+    fi
+  fi
 else
   printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
-  "$install_dir/maurice" start --wait 120s
+  # One process per data directory: the startup service starts One when it is
+  # registered; a manual start would compete with it for the same ports.
+  if [ "$autostart" = "1" ]; then
+    if [ -n "$data_dir" ]; then
+      "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
+        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+    else
+      "$install_dir/maurice" service install --home-profile "$home_profile" \
+        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+    fi
+  elif [ -n "$data_dir" ]; then
+    "$install_dir/maurice" start --wait 120s --data-dir "$data_dir"
+  else
+    "$install_dir/maurice" start --wait 120s
+  fi
   pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
   doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
-  doctor_data_dir="${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}"
+  doctor_data_dir="${data_dir:-${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}}"
   case "$pairing_prompt" in
     *'maurice doctor --json'*)
       prompt_before="${pairing_prompt%%"maurice doctor --json"*}"
@@ -263,8 +366,10 @@ Run Doctor with --data-dir set to this One directory: $doctor_data_dir"
 fi
 
 installation_consent="no"
-if [ "$official_download" = "1" ] && [ -t 0 ] && [ -t 1 ]; then
-  printf '%s' 'Allow AgentMaurice to report this installation (version, OS, architecture and a random installation ID) to get.agentmaurice.app? [y/N] '
+if [ "$report_installation" = "1" ]; then
+  installation_consent="yes"
+elif [ "$official_download" = "1" ] && [ -t 0 ] && [ -t 1 ]; then
+  printf '%s' 'Allow AgentMaurice to report this installation (version, OS, architecture and a random installation ID) to get.agentmaurice.app and PostHog EU? [y/N] '
   IFS= read -r installation_consent || installation_consent=""
 fi
 case "$installation_consent" in
@@ -312,10 +417,38 @@ if [ "$official_download" = "1" ] && [ "$installation_consent" = "yes" ]; then
     else
       printf 'Installation succeeded; installation count requires curl or wget.\n' >&2
     fi
+    posthog_payload="$(printf '{"api_key":"%s","event":"am.one.installed","distinct_id":"%s","properties":{"version":"%s","os":"%s","arch":"%s","surface":"installer","$process_person_profile":false,"$geoip_disable":true}}' \
+      "$posthog_token" "$installation_id" "$version" "$os" "$arch")"
+    if command -v curl >/dev/null 2>&1; then
+      if [ "$allow_http" = "1" ]; then
+        curl --fail --silent --show-error --max-time 10 -H 'Content-Type: application/json' \
+          --data "$posthog_payload" "$posthog_capture_url" >/dev/null \
+          || printf 'Installation succeeded; PostHog count could not be reported.\n' >&2
+      else
+        curl --fail --silent --show-error --max-time 10 --proto '=https' --tlsv1.2 \
+          -H 'Content-Type: application/json' --data "$posthog_payload" \
+          "$posthog_capture_url" >/dev/null \
+          || printf 'Installation succeeded; PostHog count could not be reported.\n' >&2
+      fi
+    elif command -v wget >/dev/null 2>&1; then
+      if [ "$allow_http" = "1" ]; then
+        wget -q --timeout=10 --header='Content-Type: application/json' \
+          --post-data="$posthog_payload" -O /dev/null \
+          "$posthog_capture_url" \
+          || printf 'Installation succeeded; PostHog count could not be reported.\n' >&2
+      else
+        wget -q --https-only --timeout=10 --header='Content-Type: application/json' \
+          --post-data="$posthog_payload" -O /dev/null \
+          "$posthog_capture_url" \
+          || printf 'Installation succeeded; PostHog count could not be reported.\n' >&2
+      fi
+    else
+      printf 'Installation succeeded; PostHog count requires curl or wget.\n' >&2
+    fi
   else
     printf 'Installation succeeded; installation count could not be prepared.\n' >&2
   fi
 fi
-if [ "$home_profile" != "vm" ]; then
+if [ "$home_profile" = "workstation" ]; then
   printf '%s\n' "$pairing_prompt"
 fi
