@@ -34,13 +34,13 @@ Options:
   --install-dir DIR      User-owned binary directory (default: ~/.local/bin)
   --base-url URL         Release directory override for mirrors or testing
   --home-profile         Home access profile: workstation (default), vm or vm-managed
-  --data-dir DIR         Persistent One data directory (default: ~/.maurice/one)
+  --data-dir DIR         Persistent Maurice data directory (default: ~/.maurice/one)
   --no-autostart         Install the binary without registering a startup service
   --report-installation  Count this install without a prompt (version, OS, architecture, random id)
   -h, --help             Show this help
 
-The installer downloads only the One release archive. Deno and the embedded
-services are managed by One itself when it starts.
+The installer downloads only the Maurice release archive. Deno and the embedded
+services are managed by Maurice itself when it starts.
 EOF
 }
 
@@ -133,7 +133,7 @@ esac
 [ "$home_profile" = "workstation" ] || [ "$os" = "linux" ] \
   || die "the $home_profile home profile is supported only by the Linux installer"
 # The managed VM is installed by the AgentMaurice runner, which writes the
-# Console enrollment and Hanko settings before One starts.
+# Console enrollment and Hanko settings before Maurice starts.
 [ "$home_profile" != "vm-managed" ] || [ -r /etc/agentmaurice/one.env ] || sudo -n test -f /etc/agentmaurice/one.env 2>/dev/null \
   || die 'the vm-managed profile requires /etc/agentmaurice/one.env written by the AgentMaurice runner'
 
@@ -249,7 +249,7 @@ binary_path="$bundle_dir/maurice"
 verify_inner_checksums "$bundle_dir" || die 'release contents failed checksum verification'
 viewer_path="$bundle_dir/viewer"
 [ -f "$viewer_path/index.html" ] && [ -f "$viewer_path/.bundled-viewer.json" ] \
-  || die 'release archive does not contain the pinned One viewer'
+  || die 'release archive does not contain the pinned Maurice viewer'
 [ -z "$(find "$viewer_path" -type l -print -quit)" ] \
   || die 'release viewer contains symbolic links'
 
@@ -268,8 +268,8 @@ chmod 755 "$binary_path"
 "$binary_path" version --json >/dev/null \
   || die 'downloaded maurice binary did not start successfully'
 if [ "$autostart" = "1" ] && ! "$binary_path" service --help >/dev/null 2>&1; then
-  # Releases before `maurice service` still install: One is started manually.
-  printf 'This One release does not support automatic startup; One will be started without registering a startup service.\n' >&2
+  # Releases before `maurice service` still install: Maurice is started manually.
+  printf 'This Maurice release does not support automatic startup; Maurice will be started without registering a startup service.\n' >&2
   autostart="0"
 fi
 
@@ -301,16 +301,16 @@ case ":${PATH:-}:" in
     ;;
 esac
 printf 'Next: maurice help\n'
-printf 'Deno and embedded services are managed by One; do not install them separately.\n'
+printf 'Deno and embedded services are managed by Maurice; do not install them separately.\n'
 if [ "$home_profile" = "vm-managed" ]; then
-  printf 'Managed One VM: people sign in with their AgentMaurice account; One listens only on loopback behind the edge.\n'
+  printf 'Managed Maurice VM: people sign in with their AgentMaurice account; Maurice listens only on loopback behind the edge.\n'
   if [ "$autostart" = "1" ]; then
     if [ -n "$data_dir" ]; then
       "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
-        || die 'automatic startup failed or One is not enrolled in the Console; check maurice service status and maurice doctor --json'
+        || die 'automatic startup failed or Maurice is not enrolled in the Console; check maurice service status and maurice doctor --json'
     else
       "$install_dir/maurice" service install --home-profile "$home_profile" \
-        || die 'automatic startup failed or One is not enrolled in the Console; check maurice service status and maurice doctor --json'
+        || die 'automatic startup failed or Maurice is not enrolled in the Console; check maurice service status and maurice doctor --json'
     fi
   fi
 elif [ "$home_profile" = "vm" ]; then
@@ -319,14 +319,14 @@ elif [ "$home_profile" = "vm" ]; then
   else
     "$install_dir/maurice" home-bootstrap --profile vm
   fi
-  printf 'Reach One through an SSH tunnel to 127.0.0.1:4000; it is not published on the Internet by default.\n'
+  printf 'Reach Maurice through an SSH tunnel to 127.0.0.1:4000; it is not published on the Internet by default.\n'
   if [ "$autostart" = "1" ]; then
     if [ -n "$data_dir" ]; then
       "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
-        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+        || die 'automatic startup failed or Maurice did not become healthy; the binary is installed, check maurice service status and maurice doctor'
     else
       "$install_dir/maurice" service install --home-profile "$home_profile" \
-        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+        || die 'automatic startup failed or Maurice did not become healthy; the binary is installed, check maurice service status and maurice doctor'
     fi
   fi
 else
@@ -345,19 +345,19 @@ else
     else
       "$install_dir/maurice" stop
     fi
-    printf '\nUpdating One on the existing data directory...\n'
+    printf '\nUpdating Maurice on the existing data directory...\n'
   else
-    printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
+    printf '\nStarting Maurice and creating a temporary code-agent pairing prompt...\n'
   fi
-  # One process per data directory: the startup service starts One when it is
+  # Maurice process per data directory: the startup service starts Maurice when it is
   # registered; a manual start would compete with it for the same ports.
   if [ "$autostart" = "1" ]; then
     if [ -n "$data_dir" ]; then
       "$install_dir/maurice" service install --home-profile "$home_profile" --data-dir "$data_dir" \
-        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+        || die 'automatic startup failed or Maurice did not become healthy; the binary is installed, check maurice service status and maurice doctor'
     else
       "$install_dir/maurice" service install --home-profile "$home_profile" \
-        || die 'automatic startup failed or One did not become healthy; the binary is installed, check maurice service status and maurice doctor'
+        || die 'automatic startup failed or Maurice did not become healthy; the binary is installed, check maurice service status and maurice doctor'
     fi
   elif [ -n "$data_dir" ]; then
     "$install_dir/maurice" start --wait 120s --data-dir "$data_dir"
@@ -365,9 +365,9 @@ else
     "$install_dir/maurice" start --wait 120s
   fi
   if [ "$instance_existed" = "1" ]; then
-    pairing_prompt="Updated One on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.
+    pairing_prompt="Updated Maurice on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.
 
-One data directory: $resolved_data_dir"
+Maurice data directory: $resolved_data_dir"
   else
     pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
     doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
@@ -378,12 +378,12 @@ One data directory: $resolved_data_dir"
       prompt_after="${pairing_prompt#*"maurice doctor --json"}"
       pairing_prompt="${prompt_before}maurice doctor --data-dir ONE_DATA_DIR --json${prompt_after}
 
-One data directory (replace ONE_DATA_DIR with this path): $doctor_data_dir"
+Maurice data directory (replace ONE_DATA_DIR with this path): $doctor_data_dir"
       ;;
     *)
       pairing_prompt="$pairing_prompt
 
-Run Doctor with --data-dir set to this One directory: $doctor_data_dir"
+Run Doctor with --data-dir set to this Maurice directory: $doctor_data_dir"
       ;;
     esac
   fi

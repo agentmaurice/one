@@ -96,7 +96,7 @@ try {
     $sourceViewer = Join-Path (Join-Path $tempRoot $bundleName) "viewer"
     if (-not (Test-Path -LiteralPath (Join-Path $sourceViewer "index.html") -PathType Leaf) -or
         -not (Test-Path -LiteralPath (Join-Path $sourceViewer ".bundled-viewer.json") -PathType Leaf)) {
-        throw "Release archive does not contain the pinned One viewer"
+        throw "Release archive does not contain the pinned Maurice viewer"
     }
 
     $signature = Get-AuthenticodeSignature -FilePath $sourceBinary
@@ -115,8 +115,8 @@ try {
     if (-not $NoAutostart) {
         & $sourceBinary service --help | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            # Releases before `maurice service` still install: One is started manually.
-            Write-Warning "This One release does not support automatic startup; One will be started without registering a startup task."
+            # Releases before `maurice service` still install: Maurice is started manually.
+            Write-Warning "This Maurice release does not support automatic startup; Maurice will be started without registering a startup task."
             $NoAutostart = $true
         }
     }
@@ -151,7 +151,7 @@ try {
                 if ((Get-ScheduledTask -TaskName "AgentMaurice One").State -ne "Running") { break }
             }
             if ((Get-ScheduledTask -TaskName "AgentMaurice One").State -eq "Running") {
-                throw "One did not stop before the executable update"
+                throw "Maurice did not stop before the executable update"
             }
         }
         $backupBinary = Join-Path $InstallDir (".maurice.backup." + [System.Guid]::NewGuid().ToString("N") + ".exe")
@@ -184,7 +184,7 @@ try {
         Write-Host "Add $InstallDir to your user PATH, or rerun with -AddToPath."
     }
     Write-Host "Next: maurice help"
-    Write-Host "Deno and embedded services are managed by One; do not install them separately."
+    Write-Host "Deno and embedded services are managed by Maurice; do not install them separately."
     if (-not $NoAutostart) {
         $serviceArguments = @("service", "install", "--home-profile", "workstation")
         if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
@@ -192,7 +192,7 @@ try {
         }
         & $destination @serviceArguments
         if ($LASTEXITCODE -ne 0) {
-            throw "One was installed, but automatic startup failed or One did not become healthy; check maurice service status and maurice doctor"
+            throw "Maurice was installed, but automatic startup failed or Maurice did not become healthy; check maurice service status and maurice doctor"
         }
     }
     elseif ($restartExistingTask) {
@@ -213,15 +213,15 @@ try {
             $stopArguments += @("--data-dir", $DataDir)
         }
         & $destination @stopArguments
-        if ($LASTEXITCODE -ne 0) { throw "One could not stop; the binary is installed at $destination" }
+        if ($LASTEXITCODE -ne 0) { throw "Maurice could not stop; the binary is installed at $destination" }
         Write-Host ""
-        Write-Host "Updating One on the existing data directory..."
+        Write-Host "Updating Maurice on the existing data directory..."
     }
     else {
         Write-Host ""
-        Write-Host "Starting One and creating a temporary code-agent pairing prompt..."
+        Write-Host "Starting Maurice and creating a temporary code-agent pairing prompt..."
     }
-    # One process per data directory: the startup service already started One;
+    # Maurice process per data directory: the startup service already started Maurice;
     # a manual start only runs without it.
     if ($NoAutostart) {
         $startArguments = @("start", "--wait", "120s")
@@ -229,14 +229,14 @@ try {
             $startArguments += @("--data-dir", $DataDir)
         }
         & $destination @startArguments
-        if ($LASTEXITCODE -ne 0) { throw "One could not start; the binary is installed at $destination" }
+        if ($LASTEXITCODE -ne 0) { throw "Maurice could not start; the binary is installed at $destination" }
     }
     if ($instanceExisted) {
-        $pairingPrompt = "Updated One on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.`n`nOne data directory: $resolvedDataDir"
+        $pairingPrompt = "Updated Maurice on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.`n`nOne data directory: $resolvedDataDir"
     }
     else {
     $pairingPrompt = & $destination setup --pairing-prompt
-    if ($LASTEXITCODE -ne 0) { throw "One setup or pairing failed; the binary is installed at $destination" }
+    if ($LASTEXITCODE -ne 0) { throw "Maurice setup or pairing failed; the binary is installed at $destination" }
     $doctorStatus = $null
     try { $doctorStatus = & $destination status --json 2>$null | ConvertFrom-Json } catch { }
     $doctorDataDir = if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
@@ -253,10 +253,10 @@ try {
         $pairingPrompt = $pairingPrompt.Replace(
             "maurice doctor --json", "maurice doctor --data-dir ONE_DATA_DIR --json")
         $pairingPrompt += [Environment]::NewLine + [Environment]::NewLine +
-            "One data directory (replace ONE_DATA_DIR with this path): $doctorDataDir"
+            "Maurice data directory (replace ONE_DATA_DIR with this path): $doctorDataDir"
     } else {
         $pairingPrompt += [Environment]::NewLine + [Environment]::NewLine +
-            "Run Doctor with --data-dir set to this One directory: $doctorDataDir"
+            "Run Doctor with --data-dir set to this Maurice directory: $doctorDataDir"
     }
     }
 

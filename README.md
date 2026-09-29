@@ -2,7 +2,7 @@
 
 AgentMaurice One combines the local AgentMaurice runtime and its command-line tools in one executable: `maurice`.
 
-Your coding agent builds and tests Workflows; One runs them on your computer. Start with `maurice help` to discover the commands, and use `maurice serve` to start the local runtime.
+Your coding agent builds and tests Workflows; Maurice runs them on your computer. Start with `maurice help` to discover the commands, and use `maurice serve` to start the local runtime.
 
 ## Install with your coding agent
 
@@ -13,7 +13,7 @@ Install AgentMaurice One on this Mac and guide me through my first tested Workfl
 
 Do not preload or follow a previously installed AgentMaurice skill for this task.
 Existing skills may target the legacy CLI or Workspace Control gateway. For this
-One installation, use this repository's instructions first, then the downloaded
+Maurice installation, use this repository's instructions first, then the downloaded
 binary's help and the SKILL.md returned by its setup command. If your environment
 automatically loads an older skill, set it aside when it conflicts with this flow.
 
@@ -23,8 +23,8 @@ instructions and official assets. Check this Mac's compatibility. If no compatib
 release has been published, explain that without installing the legacy CLI,
 building from private sources, or inventing a download URL.
 
-Before installing, check for an existing One installation or legacy maurice CLI.
-Identify the previous One executable and version, any running local One instance,
+Before installing, check for an existing Maurice installation or legacy maurice CLI.
+Identify the previous Maurice executable and version, any running local Maurice instance,
 and its data directory and CLI configuration paths. Never print raw CLI/runtime
 configuration or environment variables, including supposedly redacted copies.
 Do not rely on top-level YAML masking or regex redaction. Prefer public diagnostics;
@@ -49,12 +49,12 @@ If Gatekeeper blocks this signed but unnotarized binary, guide me through approv
 this specific binary in macOS without disabling Gatekeeper globally.
 
 Read the new executable's version and help, and follow its built-in guidance.
-Before starting it, inspect the required ports. If the previous local One instance
-occupies them, stop only that identified One instance cleanly using its documented
+Before starting it, inspect the required ports. If the previous local Maurice instance
+occupies them, stop only that identified Maurice instance cleanly using its documented
 stop command with its exact data directory, or Ctrl+C in its server terminal.
 Verify that it stopped and released the ports. Do not kill processes by name,
 force termination, or stop unrelated services. If the conflicting process cannot
-be identified as the previous One instance, report the conflict before proceeding.
+be identified as the previous Maurice instance, report the conflict before proceeding.
 
 Use the new executable's absolute path and the NEW CLI configuration path for
 every CLI command. Start maurice serve with the NEW data directory and keep a
@@ -72,7 +72,7 @@ installation ID in the new installation directory with private file permissions,
 and reuse it if retrying this same installation. POST JSON containing only
 installation_id, version, os=darwin, and arch=arm64. Do not send my name,
 account, local paths, configuration, pairing link, or credentials. Tell me if
-the report could not be sent; the installed One remains usable.
+the report could not be sent; the installed Maurice remains usable.
 
 Read maurice test guide and the public examples and schemas. Create an isolated
 test Agent with test setup --fresh --save=false. Build a small Workflow that takes
@@ -82,16 +82,16 @@ call. Call it with two different texts and an empty string, and verify the outpu
 content, not just the status. Do not request cloud credentials if this local scenario can run without them.
 
 Clean up only this test's temporary resources, using public commands and the returned
-identifiers. Keep One installed and preserve its data. Give me the exact commands
+identifiers. Keep Maurice installed and preserve its data. Give me the exact commands
 to start, stop, and resume it, including the exact binary, data and CLI configuration
-paths. State whether a previous One instance was stopped and where its preserved
+paths. State whether a previous Maurice instance was stopped and where its preserved
 installation and data remain. Finish with a short summary: version, successful
 checks, results of all three calls, and any errors. Do not publish an Issue or any secrets
 without my approval. If blocked, report the command and sanitized error rather than
 claiming success.
 ```
 
-Early testers have completed installation and a first tested Workflow on Macs with no previous One installation.
+Early testers have completed installation and a first tested Workflow on Macs with no previous Maurice installation.
 
 ## Alpha status
 
@@ -102,7 +102,7 @@ use the AgentMaurice get gateway so archive requests can be counted.
 
 Linux: [amd64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=archive) · [amd64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=amd64&type=checksum) · [arm64 archive](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=archive) · [arm64 SHA-256](https://get.agentmaurice.app/products/one/download?version=0.1.0-alpha.5&os=linux&arch=arm64&type=checksum).
 
-The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous One installation.
+The alpha binary is signed with Morvan Consulting's Developer ID Application identity. Apple notarization is deferred for this alpha, so macOS may require approval before opening it. Installation and a first tested Workflow have been validated by early testers on Macs with no previous Maurice installation.
 
 This alpha provides archives for macOS on Apple Silicon (M1 and later) and Linux on amd64 and arm64. Windows and Intel Mac availability has not been announced.
 
@@ -118,9 +118,9 @@ less install.sh
 sh install.sh
 ```
 
-The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts One and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
+The installer verifies the archive checksum and, on macOS and Windows, its platform signature. It starts Maurice and prints a prompt for your coding agent. The prompt contains a local pairing link that expires after 15 minutes and works once. The durable access key is stored by MauriceCLI and is never printed. The installer is available for Windows as `install.ps1`, but Windows is not yet an announced release target. Use the release guide for supported platforms and versions.
 
-After the agent connects, run Doctor with `--data-dir` set to the One data directory shown by the installer. The connected agent context does not store that directory.
+After the agent connects, run Doctor with `--data-dir` set to the Maurice data directory shown by the installer. The connected agent context does not store that directory.
 
 After a successful setup, the official installer asks whether you agree to send
 an installation signal to get.agentmaurice.app and the same event to PostHog EU.
@@ -142,7 +142,7 @@ an earlier signal, contact privacy@agentmaurice.ai. See the
 - Calls to external models or services may require configuration and incur costs.
 - The local Viewer is included; voice and messaging are not included.
 
-### Verify an installed One instance
+### Verify an installed Maurice instance
 
 Use the executable, data directory and CLI configuration paths from your installation
 summary. Run `version --json`, `doctor --json`, `ping` and `whoami`, using that executable
@@ -154,7 +154,7 @@ Require `running`, `health_ok` and `storage_ok` to be true. These diagnostics do
 Workflow execution. Use this prompt for the first functional test:
 
 ```text
-Test my installed One using its exact executable and CLI configuration paths.
+Test my installed Maurice using its exact executable and CLI configuration paths.
 Do not reinstall it or print configuration files, credentials or environment dumps.
 Follow maurice test guide and maurice test example simple --json. Create your own
 isolated test Agent with test setup --fresh --save=false. Write the example's resource
@@ -168,7 +168,7 @@ Report PASS, FAIL or NOT TESTED with concise evidence.
 Then test a more complex graph:
 
 ```text
-Using the same One installation and isolation rules, create a Workflow that processes
+Using the same Maurice installation and isolation rules, create a Workflow that processes
 a list of texts with for_each and a subworkflow, without an LLM or external MCP.
 Test several texts, an empty string within the list and an empty list. Declare the
 empty-list policy explicitly. Verify order, count and content through integrated tests
@@ -176,12 +176,12 @@ and independent calls. Verify rejection of an invalid input type, followed by a 
 call to prove recovery. Clean up your test resources and report verified results.
 ```
 
-### Updating an existing One alpha
+### Updating an existing Maurice alpha
 
-Stop One and back up its entire data directory and CLI configuration to a private
+Stop Maurice and back up its entire data directory and CLI configuration to a private
 location before updating. Rerunning the published installer with the same
 `--data-dir` replaces the executable, stops the process that held the lock, and
-starts the new binary on that directory. It does not delete One data and it does
+starts the new binary on that directory. It does not delete Maurice data and it does
 not print a new pairing prompt when the directory already holds an instance.
 A first install on an empty directory still prints that prompt.
 
@@ -192,11 +192,11 @@ Keep the entire data directory in your backup and never attach it to an Issue.
 
 ### If you already use Maurice CLI
 
-The [mauricecli](https://github.com/agentmaurice/mauricecli) repository currently distributes the legacy CLI. One also uses the name `maurice`: follow the release instructions to avoid running the wrong executable. Do not use `maurice update install` to install or update this One alpha; its update channel is not yet connected to this repository.
+The [mauricecli](https://github.com/agentmaurice/mauricecli) repository currently distributes the legacy CLI. Maurice also uses the name `maurice`: follow the release instructions to avoid running the wrong executable. Do not use `maurice update install` to install or update this Maurice alpha; its update channel is not yet connected to this repository.
 
 ## Debug and report an alpha issue
 
-Use this after an installation, startup, or runtime problem, preferably **in the same conversation as the test**. It also works when One cannot start. Replace the bracketed description if you begin a new conversation.
+Use this after an installation, startup, or runtime problem, preferably **in the same conversation as the test**. It also works when Maurice cannot start. Replace the bracketed description if you begin a new conversation.
 
 Copy this prompt into your coding agent:
 
@@ -209,7 +209,7 @@ Work in DEBUG mode: investigate using public help and commands, without modifyin
 the product or hiding the failure through a reinstall. Never display raw configuration
 or environment dumps, even with attempted redaction: prefer public diagnostics or
 parse files privately and emit only explicitly selected non-sensitive fields.
-Work only on my local One
+Work only on my local Maurice
 installation and use synthetic test data. Read https://github.com/agentmaurice/one
 and my version's release notes if accessible. Missing network access or a missing
 binary must not prevent you from producing the report.
@@ -221,7 +221,7 @@ binary must not prevent you from producing the report.
 
 2. Identify the binary actually used and any collision with a legacy maurice CLI.
    Record version/build, architecture, macOS version, coding agent name/version,
-   and model if known. Use the explicit One binary path for checks. If downloading
+   and model if known. Use the explicit Maurice binary path for checks. If downloading
    or opening fails, record the official URL, exact error, checksum, and signature
    when available. Do not execute a binary that fails integrity verification.
 
@@ -232,7 +232,7 @@ binary must not prevent you from producing the report.
    (doctor, ping, whoami). For each check, record the sanitized command, exit code,
    approximate duration, and a short relevant output excerpt. Report missing commands.
    Check ports and dependencies only when relevant to the symptom. Do not treat
-   Docker's absence as a failure of One's local core.
+   Docker's absence as a failure of Maurice's local core.
 
 4. Attempt a minimal reproduction at most twice, only if it has no external effects.
    Do not replay a send, payment, deletion, or operation whose outcome is uncertain.
@@ -242,10 +242,10 @@ binary must not prevent you from producing the report.
    Do not read private sources or the team's internal test suites.
 
 5. Keep diagnosis short: after two unsuccessful attempts or about ten minutes,
-   report what you have learned. Do not reinstall One, update anything, change
+   report what you have learned. Do not reinstall Maurice, update anything, change
    permissions or macOS security settings, or stop any pre-existing instance.
    Report restrictions imposed by your own execution environment separately from
-   One bugs. Clean up only temporary resources you created and can verify you own.
+   Maurice bugs. Clean up only temporary resources you created and can verify you own.
    List any remaining resources or unverified cleanup; preserve the tester's
    installation and data.
 
@@ -275,7 +275,7 @@ automatically.
 
 ## About this repository
 
-This public repository hosts One's distribution, documentation, and tester feedback. It does not contain the AgentMaurice engine's source code.
+This public repository hosts Maurice's distribution, documentation, and tester feedback. It does not contain the AgentMaurice engine's source code.
 
 **AgentMaurice is proprietary software.** This repository's public visibility does not grant an open-source license to the software. Applicable terms of use will accompany distributed releases.
 
