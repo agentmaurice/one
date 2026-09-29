@@ -330,7 +330,25 @@ elif [ "$home_profile" = "vm" ]; then
     fi
   fi
 else
-  printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
+  # An existing instance is recognized before start: start itself writes
+  # config/standalone.yaml, so checking afterwards would hide a first install.
+  resolved_data_dir="${data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}"
+  instance_existed=0
+  if [ -f "$resolved_data_dir/bootstrap_key" ] || [ -f "$resolved_data_dir/config/standalone.yaml" ]; then
+    instance_existed=1
+  fi
+  if [ "$instance_existed" = "1" ]; then
+    # The new binary must hold the lock. start leaves a process already
+    # running on this directory in place.
+    if [ -n "$data_dir" ]; then
+      "$install_dir/maurice" stop --data-dir "$data_dir"
+    else
+      "$install_dir/maurice" stop
+    fi
+    printf '\nUpdating One on the existing data directory...\n'
+  else
+    printf '\nStarting One and creating a temporary code-agent pairing prompt...\n'
+  fi
   # One process per data directory: the startup service starts One when it is
   # registered; a manual start would compete with it for the same ports.
   if [ "$autostart" = "1" ]; then
@@ -346,10 +364,15 @@ else
   else
     "$install_dir/maurice" start --wait 120s
   fi
-  pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
-  doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
-  doctor_data_dir="${data_dir:-${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}}"
-  case "$pairing_prompt" in
+  if [ "$instance_existed" = "1" ]; then
+    pairing_prompt="Updated One on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.
+
+One data directory: $resolved_data_dir"
+  else
+    pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
+    doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
+    doctor_data_dir="${data_dir:-${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}}"
+    case "$pairing_prompt" in
     *'maurice doctor --json'*)
       prompt_before="${pairing_prompt%%"maurice doctor --json"*}"
       prompt_after="${pairing_prompt#*"maurice doctor --json"}"
@@ -362,7 +385,8 @@ One data directory (replace ONE_DATA_DIR with this path): $doctor_data_dir"
 
 Run Doctor with --data-dir set to this One directory: $doctor_data_dir"
       ;;
-  esac
+    esac
+  fi
 fi
 
 installation_consent="no"
