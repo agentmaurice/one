@@ -5,7 +5,9 @@ param(
     [string]$InstallDir = $(if ($env:AGENTMAURICE_ONE_INSTALL_DIR) { $env:AGENTMAURICE_ONE_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "AgentMaurice\bin" }),
     [string]$ReleaseBaseUrl = $env:AGENTMAURICE_ONE_RELEASE_BASE_URL,
     [string]$GetBaseUrl = $(if ($env:AGENTMAURICE_ONE_GET_BASE_URL) { $env:AGENTMAURICE_ONE_GET_BASE_URL } else { "https://get.agentmaurice.app" }),
-    [switch]$AddToPath
+    [switch]$AddToPath,
+    [string]$DataDir = $env:AGENTMAURICE_ONE_DATA_DIR,
+    [switch]$NoAutostart
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +53,11 @@ $archivePath = Join-Path $tempRoot $archiveName
 $checksumPath = "$archivePath.sha256"
 $stagedBinary = $null
 $backupBinary = $null
+$stagedViewer = $null
+$backupViewer = $null
+$viewerSwapped = $false
+$viewerCommitted = $false
+$restartExistingTask = $false
 
 try {
     New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -86,6 +93,11 @@ try {
     if (-not (Test-Path -LiteralPath $sourceBinary -PathType Leaf)) {
         throw "Release archive does not contain maurice.exe"
     }
+    $sourceViewer = Join-Path (Join-Path $tempRoot $bundleName) "viewer"
+    if (-not (Test-Path -LiteralPath (Join-Path $sourceViewer "index.html") -PathType Leaf) -or
+        -not (Test-Path -LiteralPath (Join-Path $sourceViewer ".bundled-viewer.json") -PathType Leaf)) {
+        throw "Release archive does not contain the pinned One viewer"
+    }
 
     $signature = Get-AuthenticodeSignature -FilePath $sourceBinary
     if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
@@ -100,13 +112,48 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Downloaded maurice.exe did not start successfully"
     }
+    if (-not $NoAutostart) {
+        & $sourceBinary service --help | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            # Releases before `maurice service` still install: One is started manually.
+            Write-Warning "This One release does not support automatic startup; One will be started without registering a startup task."
+            $NoAutostart = $true
+        }
+    }
 
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     $destination = Join-Path $InstallDir "maurice.exe"
+    $viewerDestination = Join-Path $InstallDir "viewer"
+    if ((Test-Path -LiteralPath $viewerDestination) -and
+        -not (Test-Path -LiteralPath (Join-Path $viewerDestination ".bundled-viewer.json") -PathType Leaf)) {
+        throw "Install directory already contains an unrelated viewer directory"
+    }
+    $stagedViewer = Join-Path $InstallDir (".viewer.install." + [System.Guid]::NewGuid().ToString("N"))
+    Copy-Item -LiteralPath $sourceViewer -Destination $stagedViewer -Recurse
     $stagedBinary = Join-Path $InstallDir (".maurice.install." + [System.Guid]::NewGuid().ToString("N") + ".exe")
     Copy-Item -LiteralPath $sourceBinary -Destination $stagedBinary
 
+    if (Test-Path -LiteralPath $viewerDestination) {
+        $backupViewer = Join-Path $InstallDir (".viewer.backup." + [System.Guid]::NewGuid().ToString("N"))
+        Move-Item -LiteralPath $viewerDestination -Destination $backupViewer
+    }
+    $viewerSwapped = $true
+    Move-Item -LiteralPath $stagedViewer -Destination $viewerDestination
+    $stagedViewer = $null
+
     if (Test-Path -LiteralPath $destination) {
+        $existingTask = Get-ScheduledTask -TaskName "AgentMaurice One" -ErrorAction SilentlyContinue
+        if ($null -ne $existingTask -and $existingTask.State -eq "Running") {
+            $restartExistingTask = $true
+            Stop-ScheduledTask -TaskName "AgentMaurice One"
+            for ($attempt = 0; $attempt -lt 20; $attempt++) {
+                Start-Sleep -Milliseconds 250
+                if ((Get-ScheduledTask -TaskName "AgentMaurice One").State -ne "Running") { break }
+            }
+            if ((Get-ScheduledTask -TaskName "AgentMaurice One").State -eq "Running") {
+                throw "One did not stop before the executable update"
+            }
+        }
         $backupBinary = Join-Path $InstallDir (".maurice.backup." + [System.Guid]::NewGuid().ToString("N") + ".exe")
         [System.IO.File]::Replace($stagedBinary, $destination, $backupBinary, $true)
         $stagedBinary = $null
@@ -117,6 +164,7 @@ try {
         [System.IO.File]::Move($stagedBinary, $destination)
         $stagedBinary = $null
     }
+    $viewerCommitted = $true
 
     if ($AddToPath) {
         $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -137,15 +185,63 @@ try {
     }
     Write-Host "Next: maurice help"
     Write-Host "Deno and embedded services are managed by One; do not install them separately."
-    Write-Host ""
-    Write-Host "Starting One and creating a temporary code-agent pairing prompt..."
-    & $destination start --wait 120s
-    if ($LASTEXITCODE -ne 0) { throw "One could not start; the binary is installed at $destination" }
+    if (-not $NoAutostart) {
+        $serviceArguments = @("service", "install", "--home-profile", "workstation")
+        if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+            $serviceArguments += @("--data-dir", $DataDir)
+        }
+        & $destination @serviceArguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "One was installed, but automatic startup failed or One did not become healthy; check maurice service status and maurice doctor"
+        }
+    }
+    elseif ($restartExistingTask) {
+        Start-ScheduledTask -TaskName "AgentMaurice One"
+    }
+    $resolvedDataDir = if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+        $DataDir
+    } elseif ($env:APP_DATA_DIR) {
+        $env:APP_DATA_DIR
+    } else {
+        Join-Path $HOME ".maurice\one"
+    }
+    $instanceExisted = (Test-Path -LiteralPath (Join-Path $resolvedDataDir "bootstrap_key")) -or
+        (Test-Path -LiteralPath (Join-Path $resolvedDataDir "config\standalone.yaml"))
+    if ($instanceExisted) {
+        $stopArguments = @("stop")
+        if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+            $stopArguments += @("--data-dir", $DataDir)
+        }
+        & $destination @stopArguments
+        if ($LASTEXITCODE -ne 0) { throw "One could not stop; the binary is installed at $destination" }
+        Write-Host ""
+        Write-Host "Updating One on the existing data directory..."
+    }
+    else {
+        Write-Host ""
+        Write-Host "Starting One and creating a temporary code-agent pairing prompt..."
+    }
+    # One process per data directory: the startup service already started One;
+    # a manual start only runs without it.
+    if ($NoAutostart) {
+        $startArguments = @("start", "--wait", "120s")
+        if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+            $startArguments += @("--data-dir", $DataDir)
+        }
+        & $destination @startArguments
+        if ($LASTEXITCODE -ne 0) { throw "One could not start; the binary is installed at $destination" }
+    }
+    if ($instanceExisted) {
+        $pairingPrompt = "Updated One on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.`n`nOne data directory: $resolvedDataDir"
+    }
+    else {
     $pairingPrompt = & $destination setup --pairing-prompt
     if ($LASTEXITCODE -ne 0) { throw "One setup or pairing failed; the binary is installed at $destination" }
     $doctorStatus = $null
     try { $doctorStatus = & $destination status --json 2>$null | ConvertFrom-Json } catch { }
-    $doctorDataDir = if ($doctorStatus -and $doctorStatus.data_dir) {
+    $doctorDataDir = if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+        $DataDir
+    } elseif ($doctorStatus -and $doctorStatus.data_dir) {
         $doctorStatus.data_dir
     } elseif ($env:APP_DATA_DIR) {
         $env:APP_DATA_DIR
@@ -161,6 +257,7 @@ try {
     } else {
         $pairingPrompt += [Environment]::NewLine + [Environment]::NewLine +
             "Run Doctor with --data-dir set to this One directory: $doctorDataDir"
+    }
     }
 
     $installationConsent = $false
@@ -198,7 +295,28 @@ try {
     }
     $pairingPrompt | Write-Output
 }
+catch {
+    if ($viewerSwapped -and -not $viewerCommitted) {
+        if (Test-Path -LiteralPath $viewerDestination) {
+            Remove-Item -LiteralPath $viewerDestination -Recurse -Force
+        }
+        if ($backupViewer -and (Test-Path -LiteralPath $backupViewer)) {
+            Move-Item -LiteralPath $backupViewer -Destination $viewerDestination
+            $backupViewer = $null
+        }
+    }
+    if ($restartExistingTask) {
+        try { Start-ScheduledTask -TaskName "AgentMaurice One" } catch { }
+    }
+    throw
+}
 finally {
+    if ($stagedViewer -and (Test-Path -LiteralPath $stagedViewer)) {
+        Remove-Item -LiteralPath $stagedViewer -Recurse -Force
+    }
+    if ($backupViewer -and (Test-Path -LiteralPath $backupViewer)) {
+        Remove-Item -LiteralPath $backupViewer -Recurse -Force
+    }
     if ($stagedBinary -and (Test-Path -LiteralPath $stagedBinary)) {
         Remove-Item -LiteralPath $stagedBinary -Force
     }

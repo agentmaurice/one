@@ -179,10 +179,11 @@ call to prove recovery. Clean up your test resources and report verified results
 ### Updating an existing One alpha
 
 Stop One and back up its entire data directory and CLI configuration to a private
-location before updating. Download the new archive into a new versioned directory,
-verify it, then start its executable with the same data directory. Run setup again
-with the same CLI configuration and data directory so Workflow calls can use the
-saved Workflow URL without an explicit `--runtime-url`.
+location before updating. Rerunning the published installer with the same
+`--data-dir` replaces the executable, stops the process that held the lock, and
+starts the new binary on that directory. It does not delete One data and it does
+not print a new pairing prompt when the directory already holds an instance.
+A first install on an empty directory still prints that prompt.
 
 New installations create a private encryption key in the data directory. Existing
 alpha databases retain their previous key; this release does not rotate stored
