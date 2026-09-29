@@ -123,10 +123,12 @@ The installer verifies the archive checksum and, on macOS and Windows, its platf
 After the agent connects, run Doctor with `--data-dir` set to the One data directory shown by the installer. The connected agent context does not store that directory.
 
 After a successful setup, the official installer asks whether you agree to send
-an installation signal. Only an explicit `y` or `yes` sends the version, platform,
-and a random pseudonymous installation ID to get. Saying no, leaving the answer
-blank, or running the installer without an interactive terminal sends nothing and
-creates no installation ID. Retrying in the same install directory reuses an ID
+an installation signal to get.agentmaurice.app and the same event to PostHog EU.
+Only an explicit `y` or `yes`, or the flag `--report-installation`, sends the
+version, operating system, CPU architecture, and a random pseudonymous
+installation ID. Saying no, leaving the answer blank, or running without an
+interactive terminal and without that flag sends nothing and creates no
+installation ID. Retrying in the same install directory reuses an ID
 only if you previously agreed. This measures installations, not distinct people
 or active users; no account, local path, pairing link, or credential is sent.
 A reporting failure does not undo the installation. To withdraw consent for
