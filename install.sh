@@ -4,8 +4,8 @@
 # Keep that file identical to this one.
 set -eu
 
-# An explicit version stays pinned. Otherwise the newest GitHub release that
-# contains an archive for this machine is selected at install time.
+# An explicit version stays pinned. Otherwise the newest published One
+# archive for this machine is selected via get.agentmaurice.app.
 version="${AGENTMAURICE_ONE_VERSION:-}"
 version_explicit=0
 if [ -n "$version" ]; then
@@ -207,25 +207,43 @@ verify_inner_checksums() {
   fi
 }
 
-# GitHub lists releases newest first. The first asset for this OS and
-# architecture is the current archive. /releases/latest is not used: alphas
-# are prereleases. This runs inside a command substitution, so it returns
-# instead of exiting the installer.
+# Resolve the current published version from get.agentmaurice.app.
+# Shared VM IPs often exhaust the unauthenticated GitHub API quota, so this
+# path never queries that API.
+# This runs inside a command substitution, so it returns instead of exiting.
 resolve_current_version() {
-  releases_url="${AGENTMAURICE_ONE_RELEASES_URL:-https://api.github.com/repos/agentmaurice/one/releases?per_page=30}"
-  releases_path="$tmp_dir/github-releases.json"
-  download "$releases_url" "$releases_path" || return 1
-  case "$os" in
-    darwin) asset_suffix="-signed.tar.gz" ;;
-    linux) asset_suffix=".tar.gz" ;;
-  esac
-  matched="$(grep -o "agentmaurice-one-[0-9][0-9A-Za-z.-]*-${os}-${arch}${asset_suffix}\"" "$releases_path" | head -n 1 || true)"
-  [ -n "$matched" ] || return 1
-  name="${matched%\"}"
-  prefix="agentmaurice-one-"
-  rest="${name#"$prefix"}"
-  suffix="-${os}-${arch}${asset_suffix}"
-  printf '%s\n' "${rest%"$suffix"}"
+  latest_path="$tmp_dir/one-latest.json"
+  if [ -n "${AGENTMAURICE_ONE_LATEST_URL:-}" ]; then
+    download "$AGENTMAURICE_ONE_LATEST_URL" "$latest_path" || return 1
+  else
+    channel_hint="${AGENTMAURICE_ONE_CHANNEL:-}"
+    if [ -n "$channel_hint" ]; then
+      channels="$channel_hint"
+    else
+      # Prefer alpha when get supports it; fall back for older gateways.
+      channels="alpha beta stable"
+    fi
+    found=0
+    for channel in $channels; do
+      latest_url="$get_base_url/products/one/latest.json?channel=$channel"
+      if download "$latest_url" "$latest_path"; then
+        found=1
+        break
+      fi
+    done
+    [ "$found" = "1" ] || return 1
+  fi
+  version_line="$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$latest_path" | head -n 1 || true)"
+  [ -n "$version_line" ] || return 1
+  resolved="${version_line#*\"version\"}"
+  resolved="${resolved#*:}"
+  resolved="$(printf '%s' "$resolved" | tr -d '[:space:]"')"
+  [ -n "$resolved" ] || return 1
+  # Prefer a manifest that already lists this OS/arch when assets are present.
+  if grep -q '"assets"' "$latest_path"; then
+    grep -Fq "\"${os}/${arch}\"" "$latest_path" || return 1
+  fi
+  printf '%s\n' "$resolved"
 }
 
 alpha_parts() {
