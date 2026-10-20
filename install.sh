@@ -246,12 +246,13 @@ resolve_current_version() {
   printf '%s\n' "$resolved"
 }
 
-# "major minor patch rank" for X.Y.Z-alpha.N or X.Y.Z, with an optional
-# leading v as printed by maurice version. A stable X.Y.Z ranks after its alphas.
+# "major minor patch stable alpha" for X.Y.Z-alpha.N (stable 0) or X.Y.Z
+# (stable 1, alpha 0), with an optional leading v as printed by maurice version.
+# A stable X.Y.Z ranks after every X.Y.Z-alpha.N.
 version_parts() {
   printf '%s\n' "${1#v}" | sed -n \
-    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-alpha\.\([0-9][0-9]*\)$/\1 \2 \3 \4/p' \
-    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)$/\1 \2 \3 999999999/p'
+    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-alpha\.\([0-9][0-9]*\)$/\1 \2 \3 0 \4/p' \
+    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)$/\1 \2 \3 1 0/p'
 }
 
 version_field() {
@@ -263,13 +264,13 @@ installed_is_current_or_newer() {
   installed_parts="$(version_parts "$1")"
   target_parts="$(version_parts "$2")"
   [ -n "$installed_parts" ] && [ -n "$target_parts" ] || return 1
-  for field in 1 2 3; do
+  for field in 1 2 3 4; do
     installed_value="$(version_field "$field" "$installed_parts")"
     target_value="$(version_field "$field" "$target_parts")"
     [ "$installed_value" -gt "$target_value" ] && return 0
     [ "$installed_value" -lt "$target_value" ] && return 1
   done
-  [ "$(version_field 4 "$installed_parts")" -ge "$(version_field 4 "$target_parts")" ]
+  [ "$(version_field 5 "$installed_parts")" -ge "$(version_field 5 "$target_parts")" ]
 }
 
 keep_installed_when_current_or_newer() {
