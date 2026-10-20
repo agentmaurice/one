@@ -1,10 +1,10 @@
 #!/bin/sh
-# Install AgentMaurice One for macOS or Linux without system privileges.
+# Install Maurice for macOS or Linux without system privileges.
 # Public copy: https://github.com/agentmaurice/one/blob/main/install.sh
 # Keep that file identical to this one.
 set -eu
 
-# An explicit version stays pinned. Otherwise the newest published One
+# An explicit version stays pinned. Otherwise the newest published Maurice
 # archive for this machine is selected via get.agentmaurice.app.
 version="${AGENTMAURICE_ONE_VERSION:-}"
 version_explicit=0
@@ -30,7 +30,7 @@ viewer_committed=0
 
 usage() {
   cat <<'EOF'
-Install AgentMaurice One on macOS or Linux.
+Install Maurice on macOS or Linux.
 
 Usage: install.sh [--version VERSION] [--install-dir DIR] [--base-url URL] [--home-profile PROFILE] [--data-dir DIR] [--no-autostart] [--report-installation]
 
@@ -50,7 +50,7 @@ EOF
 }
 
 die() {
-  printf 'AgentMaurice One installer: %s\n' "$*" >&2
+  printf 'Maurice installer: %s\n' "$*" >&2
   exit 1
 }
 
@@ -220,8 +220,8 @@ resolve_current_version() {
     if [ -n "$channel_hint" ]; then
       channels="$channel_hint"
     else
-      # Prefer alpha when get supports it; fall back for older gateways.
-      channels="alpha beta stable"
+      # Stable first: a stable release replaces every earlier alpha.
+      channels="stable beta alpha"
     fi
     found=0
     for channel in $channels; do
@@ -246,34 +246,30 @@ resolve_current_version() {
   printf '%s\n' "$resolved"
 }
 
-alpha_parts() {
-  printf '%s\n' "$1" | sed -n 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-alpha\.\([0-9][0-9]*\)$/\1 \2 \3 \4/p'
+# "major minor patch rank" for X.Y.Z-alpha.N or X.Y.Z, with an optional
+# leading v as printed by maurice version. A stable X.Y.Z ranks after its alphas.
+version_parts() {
+  printf '%s\n' "${1#v}" | sed -n \
+    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-alpha\.\([0-9][0-9]*\)$/\1 \2 \3 \4/p' \
+    -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)$/\1 \2 \3 999999999/p'
 }
 
-alpha_field() {
+version_field() {
   printf '%s\n' "$2" | awk -v n="$1" '{print $n}'
 }
 
-# 0 when the installed alpha is the same or newer, 1 otherwise.
+# 0 when the installed version is the same or newer, 1 otherwise.
 installed_is_current_or_newer() {
-  installed_parts="$(alpha_parts "$1")"
-  target_parts="$(alpha_parts "$2")"
+  installed_parts="$(version_parts "$1")"
+  target_parts="$(version_parts "$2")"
   [ -n "$installed_parts" ] && [ -n "$target_parts" ] || return 1
-  installed_major="$(alpha_field 1 "$installed_parts")"
-  installed_minor="$(alpha_field 2 "$installed_parts")"
-  installed_patch="$(alpha_field 3 "$installed_parts")"
-  installed_alpha="$(alpha_field 4 "$installed_parts")"
-  target_major="$(alpha_field 1 "$target_parts")"
-  target_minor="$(alpha_field 2 "$target_parts")"
-  target_patch="$(alpha_field 3 "$target_parts")"
-  target_alpha="$(alpha_field 4 "$target_parts")"
-  [ "$installed_major" -gt "$target_major" ] && return 0
-  [ "$installed_major" -lt "$target_major" ] && return 1
-  [ "$installed_minor" -gt "$target_minor" ] && return 0
-  [ "$installed_minor" -lt "$target_minor" ] && return 1
-  [ "$installed_patch" -gt "$target_patch" ] && return 0
-  [ "$installed_patch" -lt "$target_patch" ] && return 1
-  [ "$installed_alpha" -ge "$target_alpha" ]
+  for field in 1 2 3; do
+    installed_value="$(version_field "$field" "$installed_parts")"
+    target_value="$(version_field "$field" "$target_parts")"
+    [ "$installed_value" -gt "$target_value" ] && return 0
+    [ "$installed_value" -lt "$target_value" ] && return 1
+  done
+  [ "$(version_field 4 "$installed_parts")" -ge "$(version_field 4 "$target_parts")" ]
 }
 
 keep_installed_when_current_or_newer() {
@@ -282,7 +278,7 @@ keep_installed_when_current_or_newer() {
   installed_version="$(printf '%s\n' "$installed_json" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
   [ -n "$installed_version" ] || return 0
   installed_is_current_or_newer "$installed_version" "$version" || return 0
-  printf 'AgentMaurice One %s is already installed and is current or newer than %s. Keeping it.\n' \
+  printf 'Maurice %s is already installed and is current or newer than %s. Keeping it.\n' \
     "$installed_version" "$version"
   exit 0
 }
@@ -382,7 +378,7 @@ mv -f "$staged_binary" "$install_dir/maurice"
 staged_binary=""
 viewer_committed=1
 
-printf '\nAgentMaurice One %s installed at %s/maurice\n' "$version" "$install_dir"
+printf '\nMaurice %s installed at %s/maurice\n' "$version" "$install_dir"
 case ":${PATH:-}:" in
   *":$install_dir:"*) ;;
   *)
