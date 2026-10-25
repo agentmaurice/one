@@ -2,7 +2,7 @@
 
 Maurice is one `maurice` executable: the AgentMaurice command-line tools and the free local runtime, with no account and no Docker. It runs on your computer, for personal and professional work.
 
-The current release is **Maurice v2.2.1**. It carries the same CLI as MauriceCLI v2.2.1 plus the local runtime (`maurice start`, `status`, `stop`, `doctor`, `setup --pairing-prompt`).
+The current release is **Maurice v2.2.3**. It carries the same CLI as MauriceCLI v2.2.1 plus the local runtime (`maurice start`, `status`, `stop`, `doctor`, `setup --pairing-prompt`).
 
 ## Install with your coding agent
 
@@ -33,7 +33,7 @@ Then check:
 "$HOME/.local/bin/maurice" doctor --data-dir "$HOME/.maurice/one" --json
 ```
 
-`version` is `v2.2.1` or newer; `doctor` reports `running`, `health_ok` and `storage_ok`.
+`version` is `v2.2.3` or newer; `doctor` reports `running`, `health_ok` and `storage_ok`.
 
 Platforms: macOS on Apple Silicon (Developer ID signed) and Linux amd64 and arm64 (SHA-256 checksums). Windows and Intel Mac are not available yet.
 

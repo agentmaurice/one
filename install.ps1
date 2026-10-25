@@ -104,7 +104,7 @@ try {
         throw "Windows Authenticode signature is not valid: $($signature.Status)"
     }
     if (-not $signature.SignerCertificate -or
-        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Morvan Consulting(,|$)') {
+        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=AgentMaurice(,|$)') {
         throw "Unexpected Windows signing authority"
     }
 
@@ -235,10 +235,18 @@ try {
         $pairingPrompt = "Updated Maurice on the existing data directory. Organization, data, and the CLI context stay. No new pairing prompt.`n`nOne data directory: $resolvedDataDir"
     }
     else {
-    $pairingPrompt = & $destination setup --pairing-prompt
+    # Same data directory as start/stop/service install: without it, setup and
+    # status look at the default profile directory, not at the instance just started.
+    $setupArguments = @("setup", "--pairing-prompt")
+    $statusArguments = @("status", "--json")
+    if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
+        $setupArguments += @("--data-dir", $DataDir)
+        $statusArguments += @("--data-dir", $DataDir)
+    }
+    $pairingPrompt = & $destination @setupArguments
     if ($LASTEXITCODE -ne 0) { throw "Maurice setup or pairing failed; the binary is installed at $destination" }
     $doctorStatus = $null
-    try { $doctorStatus = & $destination status --json 2>$null | ConvertFrom-Json } catch { }
+    try { $doctorStatus = & $destination @statusArguments 2>$null | ConvertFrom-Json } catch { }
     $doctorDataDir = if (-not [string]::IsNullOrWhiteSpace($DataDir)) {
         $DataDir
     } elseif ($doctorStatus -and $doctorStatus.data_dir) {

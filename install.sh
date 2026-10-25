@@ -456,8 +456,15 @@ else
 
 Maurice data directory: $resolved_data_dir"
   else
-    pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
-    doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
+    # Same data directory as start/stop/service install: without it, setup and
+    # status look at the default directory, not at the instance just started.
+    if [ -n "$data_dir" ]; then
+      pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt --data-dir "$data_dir")"
+      doctor_data_dir="$("$install_dir/maurice" status --json --data-dir "$data_dir" 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
+    else
+      pairing_prompt="$("$install_dir/maurice" setup --pairing-prompt)"
+      doctor_data_dir="$("$install_dir/maurice" status --json 2>/dev/null | sed -n 's/.*"data_dir":"\([^"]*\)".*/\1/p')"
+    fi
     doctor_data_dir="${data_dir:-${doctor_data_dir:-${APP_DATA_DIR:-$HOME/.maurice/one}}}"
     case "$pairing_prompt" in
     *'maurice doctor --json'*)
