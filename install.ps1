@@ -1,7 +1,7 @@
 # Install AgentMaurice One for Windows without administrator privileges.
 [CmdletBinding()]
 param(
-    [string]$Version = $(if ($env:AGENTMAURICE_ONE_VERSION) { $env:AGENTMAURICE_ONE_VERSION } else { "0.1.0-alpha.5" }),
+    [string]$Version = $env:AGENTMAURICE_ONE_VERSION,
     [string]$InstallDir = $(if ($env:AGENTMAURICE_ONE_INSTALL_DIR) { $env:AGENTMAURICE_ONE_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "AgentMaurice\bin" }),
     [string]$ReleaseBaseUrl = $env:AGENTMAURICE_ONE_RELEASE_BASE_URL,
     [string]$GetBaseUrl = $(if ($env:AGENTMAURICE_ONE_GET_BASE_URL) { $env:AGENTMAURICE_ONE_GET_BASE_URL } else { "https://get.agentmaurice.app" }),
@@ -13,9 +13,9 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
-    throw "Invalid version: $Version"
-}
+# An explicit version stays pinned. Otherwise the current published Maurice
+# version is resolved from get.agentmaurice.app (stable first), like install.sh.
+$versionExplicit = -not [string]::IsNullOrWhiteSpace($Version)
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     throw "InstallDir cannot be empty"
 }
@@ -31,21 +31,73 @@ switch ($architecture) {
     default { throw "Unsupported Windows architecture: $architecture" }
 }
 
+$GetBaseUrl = $GetBaseUrl.TrimEnd('/')
+
+function Test-SecureUrl([string]$Url) {
+    if ($Url -match '^https://') { return $true }
+    $localHttp = $Url -match '^http://(127\.0\.0\.1|localhost)(:[0-9]+)?($|/)'
+    return ($localHttp -and $env:AGENTMAURICE_ONE_ALLOW_HTTP -eq "1")
+}
+
+# Resolve the current published version from get.agentmaurice.app.
+# Shared VM IPs often exhaust the unauthenticated GitHub API quota, so this
+# path never queries that API. Returns $null when no archive is published for
+# windows/$Arch.
+function Resolve-CurrentVersion([string]$BaseUrl, [string]$TargetArch) {
+    if ($env:AGENTMAURICE_ONE_LATEST_URL) {
+        $latestUrls = @($env:AGENTMAURICE_ONE_LATEST_URL)
+    }
+    else {
+        # Stable first: a stable release replaces every earlier alpha.
+        $channels = @("stable", "beta", "alpha")
+        if ($env:AGENTMAURICE_ONE_CHANNEL) { $channels = @($env:AGENTMAURICE_ONE_CHANNEL) }
+        $latestUrls = @($channels | ForEach-Object { "$BaseUrl/products/one/latest.json?channel=$([System.Uri]::EscapeDataString($_))" })
+    }
+    foreach ($latestUrl in $latestUrls) {
+        if (-not (Test-SecureUrl $latestUrl)) { throw "Latest version URL must use HTTPS" }
+        try {
+            $manifest = (Invoke-WebRequest -Uri $latestUrl -UseBasicParsing).Content | ConvertFrom-Json
+        }
+        catch {
+            continue
+        }
+        # The first channel that answers decides, as in install.sh.
+        if ($null -eq $manifest) { return $null }
+        $versionProperty = $manifest.PSObject.Properties["version"]
+        if ($null -eq $versionProperty -or [string]::IsNullOrWhiteSpace([string]$versionProperty.Value)) {
+            return $null
+        }
+        # When the manifest lists assets, this OS/arch must be among them.
+        $assetsProperty = $manifest.PSObject.Properties["assets"]
+        if ($null -ne $assetsProperty -and $null -ne $assetsProperty.Value) {
+            if ($null -eq $assetsProperty.Value.PSObject.Properties["windows/$TargetArch"]) { return $null }
+        }
+        return ([string]$manifest.version).Trim()
+    }
+    return $null
+}
+
+if (-not $versionExplicit) {
+    $Version = Resolve-CurrentVersion $GetBaseUrl $arch
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        throw "No public archive for windows/$arch"
+    }
+}
+if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
+    throw "Invalid version: $Version"
+}
+
 $bundleName = "agentmaurice-one-$Version-windows-$arch"
 $archiveName = "$bundleName.zip"
 $officialDownload = [string]::IsNullOrWhiteSpace($ReleaseBaseUrl)
-$GetBaseUrl = $GetBaseUrl.TrimEnd('/')
 if ($officialDownload) {
     $ReleaseBaseUrl = "$GetBaseUrl/products/one/download"
 }
 else {
     $ReleaseBaseUrl = $ReleaseBaseUrl.TrimEnd('/')
 }
-if ($ReleaseBaseUrl -notmatch '^https://') {
-    $localHttp = $ReleaseBaseUrl -match '^http://(127\.0\.0\.1|localhost)(:[0-9]+)?($|/)'
-    if (-not ($localHttp -and $env:AGENTMAURICE_ONE_ALLOW_HTTP -eq "1")) {
-        throw "ReleaseBaseUrl must use HTTPS"
-    }
+if (-not (Test-SecureUrl $ReleaseBaseUrl)) {
+    throw "ReleaseBaseUrl must use HTTPS"
 }
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("agentmaurice-one-" + [System.Guid]::NewGuid().ToString("N"))
