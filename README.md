@@ -35,7 +35,7 @@ Then check:
 
 `version` is `v2.2.4` or newer; `doctor` reports `running`, `health_ok` and `storage_ok`.
 
-Platforms: macOS on Apple Silicon (Developer ID signed), Linux amd64 and arm64 (SHA-256 checksums) and Windows amd64. On Windows, run `install.ps1` in PowerShell without administrator rights and name the version: `.\install.ps1 -Version 2.2.4 -AddToPath`. Intel Mac and Windows arm64 are not published for v2.2.4: they stay on MauriceCLI v2.2.1 and receive no update.
+Platforms: macOS on Apple Silicon (Developer ID signed), Linux amd64 and arm64 (SHA-256 checksums) and Windows amd64. On Windows, run `install.ps1` in PowerShell without administrator rights: `.\install.ps1 -AddToPath` installs the current stable version, and `-Version 2.2.4` pins it. Intel Mac and Windows arm64 are not published for v2.2.4: they stay on MauriceCLI v2.2.1 and receive no update.
 
 ## Update
 
