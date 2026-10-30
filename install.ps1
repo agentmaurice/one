@@ -107,6 +107,9 @@ $stagedBinary = $null
 $backupBinary = $null
 $stagedViewer = $null
 $backupViewer = $null
+$stagedWorker = $null
+$backupWorker = $null
+$workerSwapped = $false
 $viewerSwapped = $false
 $viewerCommitted = $false
 $restartExistingTask = $false
@@ -151,13 +154,27 @@ try {
         throw "Release archive does not contain the pinned Maurice viewer"
     }
 
-    $signature = Get-AuthenticodeSignature -FilePath $sourceBinary
-    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
-        throw "Windows Authenticode signature is not valid: $($signature.Status)"
+    # Slim WASM worker (AGENT-1337): maurice.exe runs WASM actions in sandbox-worker.exe
+    # when it sits next to it. An archive that declares it must ship it.
+    $sourceWorker = Join-Path (Join-Path $tempRoot $bundleName) "sandbox-worker.exe"
+    if (-not (Test-Path -LiteralPath $sourceWorker -PathType Leaf)) {
+        $sourceManifest = Join-Path (Join-Path $tempRoot $bundleName) "manifest.json"
+        if ((Test-Path -LiteralPath $sourceManifest -PathType Leaf) -and
+            (Get-Content -LiteralPath $sourceManifest -Raw | ConvertFrom-Json).wasm_worker) {
+            throw "Release archive does not contain sandbox-worker.exe"
+        }
+        $sourceWorker = $null
     }
-    if (-not $signature.SignerCertificate -or
-        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=AgentMaurice(,|$)') {
-        throw "Unexpected Windows signing authority"
+
+    foreach ($signedFile in @($sourceBinary, $sourceWorker) | Where-Object { $_ }) {
+        $signature = Get-AuthenticodeSignature -FilePath $signedFile
+        if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+            throw "Windows Authenticode signature is not valid: $($signature.Status)"
+        }
+        if (-not $signature.SignerCertificate -or
+            $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=AgentMaurice(,|$)') {
+            throw "Unexpected Windows signing authority"
+        }
     }
 
     & $sourceBinary version --json | Out-Null
@@ -184,6 +201,11 @@ try {
     Copy-Item -LiteralPath $sourceViewer -Destination $stagedViewer -Recurse
     $stagedBinary = Join-Path $InstallDir (".maurice.install." + [System.Guid]::NewGuid().ToString("N") + ".exe")
     Copy-Item -LiteralPath $sourceBinary -Destination $stagedBinary
+    $workerDestination = Join-Path $InstallDir "sandbox-worker.exe"
+    if ($sourceWorker) {
+        $stagedWorker = Join-Path $InstallDir (".sandbox-worker.install." + [System.Guid]::NewGuid().ToString("N") + ".exe")
+        Copy-Item -LiteralPath $sourceWorker -Destination $stagedWorker
+    }
 
     if (Test-Path -LiteralPath $viewerDestination) {
         $backupViewer = Join-Path $InstallDir (".viewer.backup." + [System.Guid]::NewGuid().ToString("N"))
@@ -206,6 +228,19 @@ try {
                 throw "Maurice did not stop before the executable update"
             }
         }
+    }
+    # Once Maurice is stopped no worker holds sandbox-worker.exe open. The worker of
+    # another version never stays next to the new maurice.exe.
+    if (Test-Path -LiteralPath $workerDestination) {
+        $backupWorker = Join-Path $InstallDir (".sandbox-worker.backup." + [System.Guid]::NewGuid().ToString("N") + ".exe")
+        Move-Item -LiteralPath $workerDestination -Destination $backupWorker
+    }
+    $workerSwapped = $true
+    if ($stagedWorker) {
+        [System.IO.File]::Move($stagedWorker, $workerDestination)
+        $stagedWorker = $null
+    }
+    if (Test-Path -LiteralPath $destination) {
         $backupBinary = Join-Path $InstallDir (".maurice.backup." + [System.Guid]::NewGuid().ToString("N") + ".exe")
         [System.IO.File]::Replace($stagedBinary, $destination, $backupBinary, $true)
         $stagedBinary = $null
@@ -356,6 +391,15 @@ try {
     $pairingPrompt | Write-Output
 }
 catch {
+    if ($workerSwapped -and -not $viewerCommitted) {
+        if (Test-Path -LiteralPath $workerDestination) {
+            Remove-Item -LiteralPath $workerDestination -Force
+        }
+        if ($backupWorker -and (Test-Path -LiteralPath $backupWorker)) {
+            Move-Item -LiteralPath $backupWorker -Destination $workerDestination
+            $backupWorker = $null
+        }
+    }
     if ($viewerSwapped -and -not $viewerCommitted) {
         if (Test-Path -LiteralPath $viewerDestination) {
             Remove-Item -LiteralPath $viewerDestination -Recurse -Force
@@ -382,6 +426,12 @@ finally {
     }
     if ($backupBinary -and (Test-Path -LiteralPath $backupBinary)) {
         Remove-Item -LiteralPath $backupBinary -Force
+    }
+    if ($stagedWorker -and (Test-Path -LiteralPath $stagedWorker)) {
+        Remove-Item -LiteralPath $stagedWorker -Force
+    }
+    if ($backupWorker -and (Test-Path -LiteralPath $backupWorker)) {
+        Remove-Item -LiteralPath $backupWorker -Force
     }
     if (Test-Path -LiteralPath $tempRoot) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
