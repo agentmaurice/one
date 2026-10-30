@@ -2,7 +2,7 @@
 
 Maurice is one `maurice` executable: the AgentMaurice command-line tools and the free local runtime, with no account and no Docker. It runs on your computer, for personal and professional work.
 
-The current release is **Maurice v2.2.5**. It is the one CLI: the access commands plus the local runtime (`maurice start`, `status`, `stop`, `doctor`, `setup --pairing-prompt`). MauriceCLI v2.2.5 is this same binary, at the same version.
+The current release is **Maurice v2.2.6**. It is the one CLI: the access commands plus the local runtime (`maurice start`, `status`, `stop`, `doctor`, `setup --pairing-prompt`). MauriceCLI v2.2.6 is this same binary, at the same version.
 
 ## Install with your coding agent
 
@@ -33,15 +33,15 @@ Then check:
 "$HOME/.local/bin/maurice" doctor --data-dir "$HOME/.maurice/one" --json
 ```
 
-`version` is `v2.2.5` or newer; `doctor` reports `running`, `health_ok` and `storage_ok`.
+`version` is `v2.2.6` or newer; `doctor` reports `running`, `health_ok` and `storage_ok`.
 
-Platforms: macOS on Apple Silicon (Developer ID signed), Linux amd64 and arm64 (SHA-256 checksums) and Windows amd64. On Windows, run `install.ps1` in PowerShell without administrator rights: `.\install.ps1 -AddToPath` installs the current stable version, and `-Version 2.2.5` pins it. Intel Mac and Windows arm64 are not published for v2.2.5: they stay on MauriceCLI v2.2.1 and receive no update.
+Platforms: macOS on Apple Silicon (Developer ID signed), Linux amd64 and arm64 (SHA-256 checksums) and Windows amd64. On Windows, run `install.ps1` in PowerShell without administrator rights: `.\install.ps1 -AddToPath` installs the current stable version, and `-Version 2.2.6` pins it. Intel Mac and Windows arm64 are not published for v2.2.6: they stay on MauriceCLI v2.2.1 and receive no update.
 
 ## Update
 
 Run the installer again. It keeps the same or a newer version, and replaces an older one, including an earlier Maurice preview, in place: it stops the old process and starts Maurice again on the same data directory `~/.maurice/one`, without deleting it and without a new pairing prompt.
 
-From v2.2.4 on, `maurice update check` and `maurice update install` update this same binary and its Viewer, and later updates need no reinstall. Maurice v2.2.3 and earlier cannot verify updates: run the installer once to reach v2.2.5.
+From v2.2.4 on, `maurice update check` and `maurice update install` update this same binary and its Viewer, and later updates need no reinstall. Maurice v2.2.3 and earlier cannot verify updates: run the installer once to reach v2.2.6.
 
 From v2.2.5, Maurice never installs an update by itself. The background check (`maurice update watch`) only reports a newer version, which `maurice status` shows; install it with `maurice update install --yes`. To keep the former automatic behaviour, set `MAURICE_UPDATE_AUTO_INSTALL=1` explicitly.
 

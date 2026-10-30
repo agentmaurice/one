@@ -27,6 +27,9 @@ staged_viewer=""
 backup_viewer=""
 viewer_swapped=0
 viewer_committed=0
+staged_worker=""
+backup_worker=""
+worker_swapped=0
 
 usage() {
   cat <<'EOF'
@@ -69,6 +72,19 @@ cleanup() {
   fi
   if [ -n "$staged_binary" ] && [ -e "$staged_binary" ]; then
     rm -f "$staged_binary"
+  fi
+  # The WASM worker goes back to its previous version unless maurice was replaced too.
+  if [ "$worker_swapped" = "1" ] && [ "$viewer_committed" = "0" ]; then
+    rm -f "$install_dir/sandbox-worker"
+    if [ -n "$backup_worker" ] && [ -e "$backup_worker" ]; then
+      mv -f "$backup_worker" "$install_dir/sandbox-worker"
+    fi
+  fi
+  if [ -n "$backup_worker" ] && [ -e "$backup_worker" ]; then
+    rm -f "$backup_worker"
+  fi
+  if [ -n "$staged_worker" ] && [ -e "$staged_worker" ]; then
+    rm -f "$staged_worker"
   fi
   if [ -n "$tmp_dir" ] && [ -d "$tmp_dir" ]; then
     rm -rf "$tmp_dir"
@@ -340,15 +356,28 @@ viewer_path="$bundle_dir/viewer"
 [ -z "$(find "$viewer_path" -type l -print -quit)" ] \
   || die 'release viewer contains symbolic links'
 
+# Slim WASM worker (AGENT-1337): maurice runs WASM actions in sandbox-worker
+# when it sits next to its executable. An archive that declares it must ship it.
+worker_path="$bundle_dir/sandbox-worker"
+if [ ! -f "$worker_path" ]; then
+  worker_path=""
+  ! grep -q '"wasm_worker"' "$bundle_dir/manifest.json" 2>/dev/null \
+    || die 'release archive does not contain sandbox-worker'
+fi
+
 if [ "$os" = "darwin" ]; then
   command -v codesign >/dev/null 2>&1 || die 'codesign is required on macOS'
-  codesign --verify --strict --verbose=2 "$binary_path" \
-    || die 'macOS signature verification failed'
-  signature="$(codesign -d --verbose=4 "$binary_path" 2>&1)" \
-    || die 'cannot inspect the macOS signature'
-  printf '%s\n' "$signature" \
-    | grep -Fq 'Authority=Developer ID Application: Morvan Consulting (9645432P68)' \
-    || die 'unexpected macOS signing authority'
+  set -- "$binary_path"
+  [ -z "$worker_path" ] || set -- "$@" "$worker_path"
+  for signed_path in "$@"; do
+    codesign --verify --strict --verbose=2 "$signed_path" \
+      || die 'macOS signature verification failed'
+    signature="$(codesign -d --verbose=4 "$signed_path" 2>&1)" \
+      || die 'cannot inspect the macOS signature'
+    printf '%s\n' "$signature" \
+      | grep -Fq 'Authority=Developer ID Application: Morvan Consulting (9645432P68)' \
+      || die 'unexpected macOS signing authority'
+  done
 fi
 
 chmod 755 "$binary_path"
@@ -368,6 +397,11 @@ cp -R "$viewer_path" "$staged_viewer"
 staged_binary="$install_dir/.maurice.install.$$"
 cp "$binary_path" "$staged_binary"
 chmod 755 "$staged_binary"
+if [ -n "$worker_path" ]; then
+  staged_worker="$install_dir/.sandbox-worker.install.$$"
+  cp "$worker_path" "$staged_worker"
+  chmod 755 "$staged_worker"
+fi
 if [ -d "$install_dir/viewer" ]; then
   backup_viewer="$install_dir/.viewer.backup.$$"
   mv "$install_dir/viewer" "$backup_viewer"
@@ -375,6 +409,16 @@ fi
 viewer_swapped=1
 mv "$staged_viewer" "$install_dir/viewer"
 staged_viewer=""
+# The worker of another version never stays next to the new maurice.
+if [ -e "$install_dir/sandbox-worker" ]; then
+  backup_worker="$install_dir/.sandbox-worker.backup.$$"
+  mv -f "$install_dir/sandbox-worker" "$backup_worker"
+fi
+worker_swapped=1
+if [ -n "$staged_worker" ]; then
+  mv -f "$staged_worker" "$install_dir/sandbox-worker"
+  staged_worker=""
+fi
 mv -f "$staged_binary" "$install_dir/maurice"
 staged_binary=""
 viewer_committed=1
